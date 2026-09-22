@@ -1,0 +1,3724 @@
+﻿/* SatQuery AI â€” ISRO Judge-Ready Editorial Theme */
+:root {
+  --bg: #f4f2e9;
+  --bg-elevated: #fffdf8;
+  --bg-sunken: #eeebe0;
+  --border: #e3dfd0;
+  --border-soft: #ece8db;
+
+  --text-primary: #1e1f1a;
+  --text-secondary: #6c6a5d;
+  --text-muted: #9a9787;
+
+  --green-bg: #e1eadb;
+  --green-fg: #3c6b41;
+  --red-bg: #f6dee0;
+  --red-fg: #a24447;
+  --blue-bg: #dde6f2;
+  --blue-fg: #3a6089;
+  --amber-bg: #f1e5cf;
+  --amber-fg: #916f2c;
+  --neutral-bg: #eae7da;
+  --neutral-fg: #6c6a5d;
+
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --radius: 10px;
+  --shadow-card: 0 1px 2px rgba(30, 28, 20, 0.04), 0 1px 0 rgba(30, 28, 20, 0.02);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.icon-sm {
+  width: 13px;
+  height: 13px;
+}
+
+.icon-lg {
+  width: 28px;
+  height: 28px;
+}
+
+/* Top strip */
+.top-strip {
+  height: 5px;
+  background: linear-gradient(90deg, #1c2b1e, #2c4530, #1c2b1e);
+  flex-shrink: 0;
+}
+
+/* Header */
+.app-header {
+  height: 60px;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-icon {
+  width: 19px;
+  height: 19px;
+  color: var(--text-primary);
+}
+
+.brand-name {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+
+.brand-dot {
+  color: var(--green-fg);
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 8px 13px;
+  border-radius: 8px;
+  transition: all .15s;
+}
+
+.nav-tab:hover {
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+}
+
+.nav-tab.active {
+  background: var(--green-bg);
+  color: var(--green-fg);
+  font-weight: 600;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.model-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+}
+
+.icon-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  padding: 5px 6px 5px 12px;
+  border-radius: 20px;
+}
+
+.user-name {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--green-bg);
+  color: var(--green-fg);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Layout */
+.app-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 14px;
+  overflow-y: auto;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.section-label.spaced {
+  margin-top: 16px;
+}
+
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 9px 10px;
+  border-radius: 8px;
+  transition: all .15s;
+}
+
+.side-nav-item:hover {
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+}
+
+.side-nav-item.active {
+  background: var(--green-bg);
+  color: var(--green-fg);
+  font-weight: 600;
+}
+
+.active-scene-card {
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--bg-elevated);
+}
+
+.scene-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.scene-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.scene-thumbs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.scene-thumbs img {
+  width: 100%;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: var(--bg-sunken);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Content */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px;
+  position: relative;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.view-header h2 {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.view-header p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+/* Card */
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 18px;
+}
+
+.card:last-child {
+  margin-bottom: 0;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.card-subtitle {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.badge-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  border: none;
+  cursor: default;
+}
+
+.badge-green {
+  background: var(--green-bg);
+  color: var(--green-fg);
+}
+
+.badge-red {
+  background: var(--red-bg);
+  color: var(--red-fg);
+  cursor: pointer;
+}
+
+.badge-blue {
+  background: var(--blue-bg);
+  color: var(--blue-fg);
+}
+
+.badge-amber {
+  background: var(--amber-bg);
+  color: var(--amber-fg);
+}
+
+.badge-neutral {
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
+}
+
+.badge.dim {
+  opacity: .55;
+}
+
+/* Workspace grid */
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr 320px;
+  gap: 18px;
+  align-items: start;
+}
+
+.workspace-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-col.wide {
+  min-width: 0;
+}
+
+/* Upload */
+.dropzone {
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  padding: 22px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-sunken);
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.dropzone:hover {
+  border-color: var(--green-fg);
+  background: var(--green-bg);
+}
+
+.dropzone-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+.dropzone-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.btn-outline {
+  margin-top: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.btn-outline:hover {
+  border-color: var(--green-fg);
+  color: var(--green-fg);
+}
+
+.btn-outline.sm {
+  padding: 4px 10px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.demo-scene-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.demo-scene-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .15s;
+}
+
+.demo-scene-item:hover {
+  background: var(--bg-sunken);
+}
+
+.demo-scene-item.active {
+  background: var(--green-bg);
+  border-color: var(--green-fg);
+}
+
+.demo-scene-item img {
+  width: 34px;
+  height: 34px;
+  border-radius: 5px;
+  object-fit: cover;
+  background: var(--bg-sunken);
+  flex-shrink: 0;
+}
+
+.demo-scene-item .dsi-text {
+  min-width: 0;
+}
+
+.demo-scene-item .dsi-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demo-scene-item .dsi-sub {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* Query card */
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 230px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding-right: 4px;
+}
+
+.chat-msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.chat-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.chat-avatar.user {
+  background: #2a2a26;
+}
+
+.chat-avatar.agent {
+  background: var(--green-fg);
+}
+
+.chat-bubble {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
+.chat-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+}
+
+.chat-chip {
+  display: inline-block;
+  margin-top: 6px;
+}
+
+.mode-chip-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.mode-chip {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.mode-chip.active {
+  background: var(--green-bg);
+  border-color: var(--green-fg);
+  color: var(--green-fg);
+}
+
+.query-input-row {
+  margin-bottom: 8px;
+}
+
+.query-textarea {
+  width: 100%;
+  height: 64px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  resize: none;
+  outline: none;
+  transition: border-color .15s;
+}
+
+.query-textarea:focus {
+  border-color: var(--green-fg);
+  background: var(--bg-elevated);
+}
+
+.query-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.icon-btn-ghost {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.icon-btn-ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.icon-btn-ghost.recording {
+  background: var(--red-bg);
+  color: var(--red-fg);
+  border-color: var(--red-fg);
+}
+
+.btn-primary {
+  background: #26382a;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all .15s;
+}
+
+.btn-primary:hover {
+  background: #33502f;
+}
+
+.btn-primary.grow {
+  flex: 1;
+}
+
+.query-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.query-chip {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  text-align: left;
+  color: var(--text-secondary);
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.query-chip:hover {
+  background: var(--green-bg);
+  border-color: var(--green-fg);
+  color: var(--green-fg);
+}
+
+/* Canvas */
+.canvas-shell {
+  display: flex;
+  justify-content: center;
+}
+
+.satellite-canvas-container {
+  width: 100%;
+  aspect-ratio: 16/10.5;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0a0d08;
+  border: 1px solid var(--border);
+}
+
+.canvas-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+.slider-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.slider-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fff;
+  cursor: ew-resize;
+  z-index: 20;
+}
+
+.slider-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e1f1a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+
+.canvas-overlay-label {
+  position: absolute;
+  z-index: 15;
+  background: rgba(20, 22, 16, 0.78);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+}
+
+.canvas-overlay-label.top-left {
+  top: 12px;
+  left: 12px;
+}
+
+.canvas-overlay-label.top-left-2 {
+  top: 44px;
+  left: 12px;
+}
+
+.canvas-overlay-label.top-right {
+  top: 12px;
+  right: 12px;
+}
+
+.canvas-zoom-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 20;
+}
+
+.zoom-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(20, 22, 16, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.zoom-btn:hover {
+  background: rgba(60, 107, 65, 0.85);
+}
+
+.bbox-overlay {
+  position: absolute;
+  border: 2px solid #c4453f;
+  background: rgba(196, 69, 63, 0.12);
+  z-index: 16;
+}
+
+.bbox-label {
+  position: absolute;
+  top: -20px;
+  left: -2px;
+  background: #c4453f;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.canvas-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.canvas-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot-sep {
+  color: var(--text-muted);
+}
+
+.canvas-toggle-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.canvas-toggle {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.canvas-toggle:hover {
+  color: var(--text-primary);
+}
+
+.canvas-toggle.active {
+  background: var(--blue-bg);
+  border-color: var(--blue-fg);
+  color: var(--blue-fg);
+}
+
+.canvas-toggle.active.danger {
+  background: var(--red-bg);
+  border-color: var(--red-fg);
+  color: var(--red-fg);
+}
+
+/* Answer card */
+.confidence-badge {
+  background: var(--green-bg);
+  color: var(--green-fg);
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  height: fit-content;
+}
+
+.ai-text {
+  font-family: var(--font-serif);
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--text-primary);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.class-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.class-stat-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.class-stat-value {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.class-stat-bar {
+  height: 5px;
+  background: var(--bg-sunken);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.class-stat-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+
+.fill-green {
+  background: var(--green-fg);
+}
+
+.fill-blue {
+  background: var(--blue-fg);
+}
+
+.fill-red {
+  background: var(--red-fg);
+}
+
+.fill-amber {
+  background: var(--amber-fg);
+}
+
+.evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.evidence-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-left: 14px;
+  position: relative;
+}
+
+.evidence-item::before {
+  content: 'â€”';
+  position: absolute;
+  left: 0;
+  color: var(--text-muted);
+}
+
+/* Trace */
+.trace-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.trace-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.trace-step {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.trace-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: 10px;
+  bottom: -14px;
+  width: 1px;
+  background: var(--border);
+}
+
+.trace-icon {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  z-index: 1;
+}
+
+.trace-icon.c-red {
+  background: var(--red-fg);
+}
+
+.trace-icon.c-blue {
+  background: var(--blue-fg);
+}
+
+.trace-icon.c-green {
+  background: var(--green-fg);
+}
+
+.trace-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.trace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.trace-node {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.trace-latency {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.trace-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.trace-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.trace-model-tag {
+  display: inline-block;
+  margin-top: 6px;
+  background: var(--bg-sunken);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+
+/* Map view */
+.map-scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.map-scenario-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: var(--shadow-card);
+}
+
+.map-scenario-card:hover {
+  border-color: var(--green-fg);
+  transform: translateY(-2px);
+}
+
+.map-scenario-card.active {
+  border-color: var(--green-fg);
+  box-shadow: 0 0 0 2px var(--green-bg);
+}
+
+.map-scenario-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: var(--bg-sunken);
+}
+
+.map-scenario-card-body {
+  padding: 12px;
+}
+
+.map-scenario-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 13.5px;
+  margin-bottom: 2px;
+}
+
+.map-scenario-loc {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Change detection */
+.cd-metrics {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.cd-chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* SAR */
+.sar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pol-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--amber-fg);
+}
+
+.bars-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 70px;
+  margin: 14px 0;
+}
+
+.bars-row .bar {
+  flex: 1;
+  background: var(--amber-fg);
+  border-radius: 2px 2px 0 0;
+  opacity: .85;
+}
+
+.pol-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.interpretation-box {
+  background: var(--amber-bg);
+  border: 1px solid #e2d2a8;
+  border-radius: var(--radius);
+  padding: 16px;
+  font-family: var(--font-serif);
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: #5c481c;
+}
+
+.interpretation-box b {
+  font-weight: 700;
+}
+
+/* Visual grounding */
+.grounding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grounding-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.grounding-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--red-bg);
+  color: var(--red-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.grounding-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.grounding-phrase {
+  font-family: var(--font-serif);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.grounding-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.grounding-show {
+  background: transparent;
+  border: none;
+  color: var(--green-fg);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* History */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all .15s;
+  box-shadow: var(--shadow-card);
+}
+
+.history-item:hover {
+  border-color: var(--green-fg);
+}
+
+.history-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-sunken);
+  flex-shrink: 0;
+}
+
+.history-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.history-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.history-chevron {
+  color: var(--text-muted);
+}
+
+/* Models & data */
+.models-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.model-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.model-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.model-type {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.model-adapted {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.model-adapted b {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* Export */
+.export-preview-wrap {
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-color: var(--bg-sunken);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.report-preview-card {
+  background: #fff;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 4px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.report-preview-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.report-preview-line {
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.report-preview-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin: 10px 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.report-preview-footer {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+}
+
+.export-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.export-option {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: left;
+}
+
+.export-option:hover {
+  border-color: var(--green-fg);
+}
+
+.export-option-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.export-option-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.export-download-icon {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(244, 242, 233, 0.9);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s;
+}
+
+.loading-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green-fg);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 15, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+}
+
+.modal-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: var(--bg-elevated);
+  border-radius: 14px;
+  width: 560px;
+  max-width: 92vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 19px;
+}
+
+.modal-body {
+  padding: 20px 22px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.modal-intro {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.modal-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--bg-sunken);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.modal-row-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.modal-row-val {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.modal-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green-bg);
+  color: var(--green-fg);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+/* Side-block (sidebar section wrapper) */
+.side-block {
+  margin-bottom: 6px;
+}
+
+/* Demo scene presets */
+.demo-scene-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.demo-scene-item {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.demo-scene-item:hover {
+  background: var(--bg-elevated);
+  border-color: var(--green-fg);
+}
+
+.demo-scene-item.active {
+  background: var(--green-bg);
+  border-color: var(--green-fg);
+}
+
+.demo-scene-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.demo-scene-location {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* Map scenarios grid */
+.map-scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 16px;
+}
+
+.map-scenario-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.map-scenario-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--blue-fg);
+}
+
+.map-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.map-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.map-card-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.map-card-coords {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* SAR polarisation card override */
+.sar-pol-card {
+  min-height: 140px;
+}
+
+/* Image onerror fallback */
+img[src=""] {
+  visibility: hidden;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Responsive: collapse 3-col grid on narrower screens */
+@media (max-width: 1280px) {
+  .workspace-grid {
+    grid-template-columns: 280px 1fr 300px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-col {
+    min-width: 0;
+  }
+
+  .main-nav {
+    display: none;
+  }
+}
+
+/* ================================================================
+   SATQUERY AI â€” FINAL WORKSPACE LAYOUT
+   ================================================================
+   One authoritative desktop layout for:
+   â€¢ Fixed Upload / Demo Scenes panel
+   â€¢ Normal scrolling Scene Canvas + Answer
+   â€¢ Fixed bottom query composer
+   â€¢ Suggestions BELOW the input
+   â€¢ EN / microphone / Analyze INSIDE composer
+   â€¢ Guaranteed safe gap between Upload and composer
+
+   IMPORTANT:
+   This replaces the older conflicting floating/sticky overrides.
+   ================================================================ */
+
+:root {
+  --sq-sidebar: 220px;
+  --sq-content-left: 242px;       /* 220px sidebar + 22px content inset */
+  --sq-right: 22px;
+
+  --sq-composer-bottom: 22px;
+  --sq-composer-height: 118px;
+  --sq-upload-gap: 18px;
+}
+
+
+/* ================================================================
+   DESKTOP
+   ================================================================ */
+
+@media (min-width: 1025px) {
+
+  /* --------------------------------------------------------------
+     SCROLLING WORKSPACE
+     -------------------------------------------------------------- */
+
+  .content-area {
+    position: relative !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    /*
+     * Reserve enough document space so the fixed composer never
+     * hides the final workspace content.
+     */
+    padding-bottom:
+      calc(
+        var(--sq-composer-height)
+        + var(--sq-composer-bottom)
+        + 32px
+      ) !important;
+  }
+
+
+  .workspace-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      320px
+      minmax(0, 1fr)
+      340px !important;
+
+    gap: 18px !important;
+
+    align-items: start !important;
+  }
+
+
+  .workspace-col {
+    min-width: 0 !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     LEFT COLUMN â€” RESERVE SPACE FOR FIXED UPLOAD
+     -------------------------------------------------------------- */
+
+  .workspace-grid > .workspace-col:first-child {
+    width: 320px !important;
+    min-width: 320px !important;
+
+    align-self: start !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     UPLOAD CARD â€” FIXED
+
+     The bottom edge is mathematically tied to the composer.
+     This is what prevents collision at different viewport heights.
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child {
+
+    position: fixed !important;
+
+    left: var(--sq-content-left) !important;
+    top: 87px !important;
+
+    width: 320px !important;
+
+    /*
+     * Composer:
+     * bottom 22px
+     * height 118px
+     *
+     * Upload:
+     * 18px safe gap
+     *
+     * Therefore:
+     * upload bottom = 22 + 118 + 18 = 158px
+     */
+    bottom:
+      calc(
+        var(--sq-composer-bottom)
+        + var(--sq-composer-height)
+        + var(--sq-upload-gap)
+      ) !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+
+    padding: 16px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    overflow: hidden !important;
+
+    background: var(--bg-elevated) !important;
+
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+
+    box-shadow: var(--shadow-card) !important;
+
+    z-index: 100 !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     UPLOAD HEADER â€” NEVER SCROLLS
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  > .card-header {
+
+    flex: 0 0 auto !important;
+
+    position: relative !important;
+
+    margin-bottom: 12px !important;
+
+    background: var(--bg-elevated) !important;
+
+    z-index: 2 !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     DROPZONE â€” NEVER SCROLLS
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .dropzone {
+
+    flex: 0 0 auto !important;
+
+    width: 100% !important;
+
+    margin: 0 !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     DEMO SCENES LABEL â€” NEVER SCROLLS
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  > .section-label.spaced {
+
+    flex: 0 0 auto !important;
+
+    margin-top: 16px !important;
+    margin-bottom: 8px !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     DEMO SCENES â€” ONLY THIS AREA SCROLLS
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .demo-scene-list {
+
+    flex: 1 1 auto !important;
+
+    min-height: 0 !important;
+
+    width: 100% !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-right: 5px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    gap: 6px !important;
+
+    scrollbar-width: thin !important;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .demo-scene-item {
+
+    flex: 0 0 auto !important;
+
+    width: 100% !important;
+
+    min-height: 52px !important;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .demo-scene-list::-webkit-scrollbar {
+
+    width: 5px;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .demo-scene-list::-webkit-scrollbar-track {
+
+    background: transparent;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .demo-scene-list::-webkit-scrollbar-thumb {
+
+    background: var(--border);
+
+    border-radius: 999px;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .demo-scene-list::-webkit-scrollbar-thumb:hover {
+
+    background: var(--text-muted);
+  }
+
+
+  /* --------------------------------------------------------------
+     QUERY COMPOSER â€” FIXED BOTTOM
+     -------------------------------------------------------------- */
+
+  .query-card {
+
+    position: fixed !important;
+
+    left: var(--sq-content-left) !important;
+    right: var(--sq-right) !important;
+    bottom: var(--sq-composer-bottom) !important;
+
+    width: auto !important;
+
+    height: var(--sq-composer-height) !important;
+    min-height: var(--sq-composer-height) !important;
+    max-height: var(--sq-composer-height) !important;
+
+    margin: 0 !important;
+
+    padding: 10px 16px 8px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    background: rgba(255, 253, 247, 0.985) !important;
+
+    border: 1px solid var(--border) !important;
+    border-radius: 22px !important;
+
+    box-shadow:
+      0 18px 45px rgba(35, 40, 30, 0.14),
+      0 5px 16px rgba(35, 40, 30, 0.08) !important;
+
+    z-index: 1000 !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* Remove old card content that was causing vertical conflicts. */
+
+  .query-card > .card-header,
+  .query-card > .chat-log,
+  .query-card > .mode-chip-row {
+
+    display: none !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     INPUT ROW
+     -------------------------------------------------------------- */
+
+  .query-card > .query-input-row {
+
+    position: relative !important;
+
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    width: 100% !important;
+
+    height: 48px !important;
+    min-height: 48px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    flex: 0 0 48px !important;
+
+    background: transparent !important;
+
+    border: 0 !important;
+  }
+
+
+  .query-card > .query-input-row::before,
+  .query-card > .query-input-row::after {
+
+    display: none !important;
+    content: none !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     TEXTAREA
+
+     Extra right padding keeps text safely away from EN / MIC /
+     ANALYZE, while the controls remain inside the composer.
+     -------------------------------------------------------------- */
+
+  .query-card .query-textarea {
+
+    display: block !important;
+
+    width: 100% !important;
+
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+
+    padding:
+      8px
+      205px
+      6px
+      8px !important;
+
+    resize: none !important;
+
+    background: transparent !important;
+
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+
+    font-family: var(--font-sans) !important;
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+
+    color: var(--text-primary) !important;
+  }
+
+
+  .query-card .query-textarea:focus {
+
+    background: transparent !important;
+
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+
+  .query-card .query-textarea::placeholder {
+
+    color: var(--text-muted) !important;
+
+    opacity: .9 !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     ACTIONS â€” INSIDE THE COMPOSER
+     -------------------------------------------------------------- */
+
+  .query-card > .query-actions {
+
+    position: absolute !important;
+
+    top: 10px !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    width: auto !important;
+    height: 42px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    gap: 8px !important;
+
+    background: transparent !important;
+
+    border: 0 !important;
+
+    z-index: 20 !important;
+  }
+
+
+  /* EN */
+
+  .query-card .query-actions .icon-btn-ghost {
+
+    height: 42px !important;
+    min-width: 42px !important;
+
+    padding: 0 11px !important;
+
+    display: inline-flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 12px !important;
+
+    flex: 0 0 auto !important;
+  }
+
+
+  /* MIC */
+
+  .query-card .query-actions #voice-btn {
+
+    width: 42px !important;
+    min-width: 42px !important;
+
+    padding: 0 !important;
+  }
+
+
+  /* ANALYZE */
+
+  .query-card .query-actions .btn-primary {
+
+    height: 42px !important;
+
+    min-width: 145px !important;
+
+    padding: 0 24px !important;
+
+    border-radius: 13px !important;
+
+    flex: 0 0 auto !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     SUGGESTIONS â€” BELOW INPUT, INSIDE COMPOSER
+     -------------------------------------------------------------- */
+
+  .query-card > .query-chips {
+
+    position: relative !important;
+
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    width: 100% !important;
+
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+
+    margin: 4px 0 0 !important;
+    padding: 0 !important;
+
+    flex: 0 0 38px !important;
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 10px !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    background: transparent !important;
+
+    z-index: 10 !important;
+
+    scrollbar-width: none !important;
+  }
+
+
+  .query-card > .query-chips::-webkit-scrollbar {
+
+    display: none !important;
+  }
+
+
+  .query-card > .query-chips > .query-chip {
+
+    flex: 0 0 auto !important;
+
+    width: auto !important;
+
+    max-width: none !important;
+
+    white-space: nowrap !important;
+
+    padding: 6px 12px !important;
+
+    border-radius: 999px !important;
+
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+
+    background: var(--bg-sunken) !important;
+
+    border: 1px solid var(--border) !important;
+
+    color: var(--text-secondary) !important;
+
+    text-align: center !important;
+  }
+
+
+  .query-card > .query-chips > .query-chip:hover {
+
+    background: var(--green-bg) !important;
+
+    border-color: var(--green-fg) !important;
+
+    color: var(--green-fg) !important;
+  }
+}
+
+
+/* ================================================================
+   DESKTOP â€” NARROWER WIDTH
+   ================================================================ */
+
+@media (min-width: 1025px) and (max-width: 1250px) {
+
+  .workspace-grid {
+    grid-template-columns:
+      280px
+      minmax(0, 1fr)
+      300px !important;
+  }
+
+
+  .workspace-grid > .workspace-col:first-child {
+    width: 280px !important;
+    min-width: 280px !important;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child {
+
+    width: 280px !important;
+  }
+
+
+  .query-card {
+    left: var(--sq-content-left) !important;
+    right: 16px !important;
+  }
+
+
+  .query-card .query-textarea {
+    padding-right: 190px !important;
+  }
+
+
+  .query-card .query-actions .btn-primary {
+    min-width: 128px !important;
+    padding: 0 18px !important;
+  }
+}
+
+
+/* ================================================================
+   TABLET / MOBILE
+   ================================================================ */
+
+@media (max-width: 1024px) {
+
+  .content-area {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-bottom: 145px !important;
+  }
+
+
+  .workspace-grid {
+    grid-template-columns: 1fr !important;
+
+    gap: 16px !important;
+  }
+
+
+  .workspace-col {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+
+  /* Upload returns to normal document flow. */
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child {
+
+    position: relative !important;
+
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+
+    width: auto !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    margin-bottom: 16px !important;
+
+    display: block !important;
+
+    overflow: visible !important;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:first-child
+  > .card:first-child
+  .demo-scene-list {
+
+    max-height: 220px !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+
+  /* Composer remains fixed and self-contained. */
+
+  .query-card {
+
+    position: fixed !important;
+
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+
+    width: auto !important;
+
+    height: 116px !important;
+    min-height: 116px !important;
+    max-height: 116px !important;
+
+    padding: 9px 12px 7px !important;
+
+    border-radius: 18px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  .query-card > .query-input-row {
+
+    height: 48px !important;
+    min-height: 48px !important;
+    flex-basis: 48px !important;
+  }
+
+
+  .query-card .query-textarea {
+
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+
+    padding:
+      8px
+      8px
+      6px !important;
+  }
+
+
+  .query-card > .query-actions {
+
+    top: 9px !important;
+    right: 10px !important;
+
+    height: 40px !important;
+  }
+
+
+  .query-card .query-actions .icon-btn-ghost {
+
+    height: 40px !important;
+    min-width: 40px !important;
+  }
+
+
+  .query-card .query-actions .btn-primary {
+
+    height: 40px !important;
+
+    min-width: 112px !important;
+
+    padding: 0 16px !important;
+  }
+
+
+  .query-card > .query-chips {
+
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+
+    flex-basis: 36px !important;
+
+    justify-content: flex-start !important;
+
+    gap: 8px !important;
+
+    margin-top: 4px !important;
+  }
+}
+
+
+/* ================================================================
+   VERY SMALL PHONES
+   ================================================================ */
+
+@media (max-width: 560px) {
+
+  .query-card {
+
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+
+    height: 118px !important;
+    min-height: 118px !important;
+    max-height: 118px !important;
+
+    padding: 8px 10px 7px !important;
+  }
+
+
+  .query-card > .query-actions {
+
+    right: 8px !important;
+
+    gap: 5px !important;
+  }
+
+
+  .query-card .query-actions .icon-btn-ghost {
+
+    min-width: 36px !important;
+    width: 36px !important;
+
+    padding: 0 !important;
+  }
+
+
+  .query-card .query-actions .btn-primary {
+
+    min-width: 92px !important;
+
+    padding: 0 12px !important;
+  }
+
+
+  .query-card .query-actions .btn-primary .icon {
+    display: none !important;
+  }
+
+
+  .query-card > .query-chips {
+
+    justify-content: flex-start !important;
+  }
+
+
+  .query-card > .query-chips > .query-chip {
+
+    font-size: 10px !important;
+
+    padding: 5px 9px !important;
+  }
+}
+
+
+/* ================================================================
+   FINAL GUARANTEE
+   Prevent any old inherited fixed-position pseudo-surface from
+   creating a second composer or visual overlap.
+   ================================================================ */
+
+.query-card::before,
+.query-card::after {
+
+  display: none !important;
+
+  content: none !important;
+}
+
+/* ================================================================
+   SATQUERY AI â€” FIXED AGENTIC EXECUTION TRACE
+   ---------------------------------------------------------------
+   The right-side Logs / Agentic Execution Trace behaves like the
+   Upload panel:
+
+   â€¢ stays fixed while Scene Canvas / Answer scroll
+   â€¢ Trace contents scroll INSIDE the card
+   â€¢ never collides with the bottom Query Composer
+   â€¢ keeps the existing HTML + JavaScript untouched
+   ================================================================ */
+
+@media (min-width: 1025px) {
+
+  /* --------------------------------------------------------------
+     RIGHT COLUMN RESERVATION
+     -------------------------------------------------------------- */
+
+  .workspace-grid > .workspace-col:last-child {
+    width: 340px !important;
+    min-width: 340px !important;
+
+    align-self: start !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     AGENTIC EXECUTION TRACE â€” FIXED
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card {
+
+    position: fixed !important;
+
+    /*
+     * Content starts after:
+     * 5px top strip
+     * 60px header
+     * 22px content inset
+     */
+    top: 87px !important;
+
+    /*
+     * Match the right side of the content area.
+     */
+    right: 22px !important;
+
+    width: 340px !important;
+
+    /*
+     * Keep the log above the fixed query composer.
+     *
+     * Composer:
+     *   bottom = 22px
+     *   height = 118px
+     *
+     * Safe gap:
+     *   18px
+     *
+     * Therefore trace bottom = 158px.
+     */
+    bottom:
+      calc(
+        var(--sq-composer-bottom)
+        + var(--sq-composer-height)
+        + var(--sq-upload-gap)
+      ) !important;
+
+    /*
+     * Let the card itself occupy all available vertical space.
+     */
+    height: auto !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    overflow: hidden !important;
+
+    background: var(--bg-elevated) !important;
+
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+
+    box-shadow: var(--shadow-card) !important;
+
+    z-index: 100 !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     TRACE HEADER â€” FIXED INSIDE CARD
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .card-header {
+
+    flex: 0 0 auto !important;
+
+    margin-bottom: 12px !important;
+
+    background: var(--bg-elevated) !important;
+
+    z-index: 2 !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     TRACE TOOLBAR â€” FIXED INSIDE CARD
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .trace-toolbar {
+
+    flex: 0 0 auto !important;
+
+    margin-bottom: 12px !important;
+  }
+
+
+  /* --------------------------------------------------------------
+     TRACE LOG â€” ONLY THIS AREA SCROLLS
+     -------------------------------------------------------------- */
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .trace-container {
+
+    flex: 1 1 auto !important;
+
+    min-height: 0 !important;
+
+    height: auto !important;
+
+    max-height: none !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-right: 5px !important;
+
+    scrollbar-width: thin !important;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .trace-container::-webkit-scrollbar {
+
+    width: 5px;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .trace-container::-webkit-scrollbar-track {
+
+    background: transparent;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .trace-container::-webkit-scrollbar-thumb {
+
+    background: var(--border);
+
+    border-radius: 999px;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .trace-container::-webkit-scrollbar-thumb:hover {
+
+    background: var(--text-muted);
+  }
+}
+
+
+/* ================================================================
+   NARROWER DESKTOP
+   ================================================================ */
+
+@media (min-width: 1025px) and (max-width: 1250px) {
+
+  .workspace-grid > .workspace-col:last-child {
+
+    width: 300px !important;
+    min-width: 300px !important;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card {
+
+    width: 300px !important;
+
+    right: 16px !important;
+  }
+}
+
+
+/* ================================================================
+   TABLET / MOBILE
+   ---------------------------------------------------------------
+   On smaller screens the right column returns to normal flow.
+   ================================================================ */
+
+@media (max-width: 1024px) {
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card {
+
+    position: relative !important;
+
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    width: auto !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    margin-bottom: 16px !important;
+
+    overflow: visible !important;
+  }
+
+
+  .workspace-grid
+  > .workspace-col:last-child
+  > .trace-card
+  > .trace-container {
+
+    max-height: 420px !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+}
+
+/* ================================================================
+   DUAL IMAGE TOGGLE
+   ================================================================ */
+
+.upload-mode-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 12px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-sunken);
+}
+
+.upload-mode-control > div {
+  min-width: 0;
+}
+
+.upload-mode-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.upload-mode-subtitle {
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.dual-upload-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  width: 126px;
+  height: 34px;
+  padding: 3px 10px 3px 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+
+.dual-upload-toggle:hover {
+  border-color: var(--green-fg);
+}
+
+.dual-toggle-dot {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  box-shadow: 0 1px 3px rgba(30, 28, 20, .16);
+  transition: transform .18s ease, background .18s ease;
+}
+
+.dual-upload-toggle.active {
+  border-color: var(--green-fg);
+  background: var(--green-bg);
+  color: var(--green-fg);
+}
+
+.dual-upload-toggle.active .dual-toggle-dot {
+  background: var(--green-fg);
+  transform: translateX(0);
+}
+
+.dual-upload-toggle:not(.active) .dual-toggle-dot {
+  background: var(--text-muted);
+}
+
+.dual-upload-toggle:focus-visible {
+  outline: 2px solid var(--green-fg);
+  outline-offset: 2px;
+}
+
+.dual-upload-panel {
+  width: 100%;
+}
+
+.dual-upload-panel[hidden],
+.single-upload-panel[hidden] {
+  display: none !important;
+}
+
+
+/* ================================================================
+   DUAL IMAGE PANEL ï¿½ UI CONSISTENCY + INTERNAL SCROLL
+   ================================================================ */
+
+.dual-upload-panel {
+  width: 100%;
+  max-height: 330px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+/* Scrollbar only matters while the dual panel is visible */
+.dual-upload-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dual-upload-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dual-upload-panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.dual-upload-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Keep dual-mode headings consistent with the Upload card */
+.dual-upload-panel h1,
+.dual-upload-panel h2,
+.dual-upload-panel h3,
+.dual-upload-panel h4,
+.dual-upload-panel h5,
+.dual-upload-panel h6 {
+  margin: 0 0 7px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+/* Acquisition labels */
+.dual-upload-panel .upload-label,
+.dual-upload-panel .step-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+/* Supporting text */
+.dual-upload-panel p,
+.dual-upload-panel small {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+/* Keep both upload boxes visually identical */
+.dual-upload-panel .dropzone {
+  min-height: 145px;
+  margin-bottom: 10px;
+}
+
+/* Prevent the T1/T2 boxes from becoming oversized */
+.dual-upload-panel .dropzone-icon,
+.dual-upload-panel .upload-icon {
+  transform: scale(.9);
+}
+
+/* "THEN" / separator should be subtle, not a heading */
+.dual-upload-panel .upload-separator,
+.dual-upload-panel .then-label {
+  margin: 2px 0 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Hidden panels must never reserve space */
+.dual-upload-panel[hidden],
+.single-upload-panel[hidden] {
+  display: none !important;
+}
+/* Dual Image uses the Upload card's shared scroll area */
+.dual-upload-panel {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.dual-upload-panel::-webkit-scrollbar {
+  display: none;
+}
+/* ================================================================
+   DUAL IMAGE TYPOGRAPHY ï¿½ MATCH SATQUERY UPLOAD UI
+   ================================================================ */
+
+.dual-upload-panel {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+/* T1 / T2 acquisition headings */
+.dual-upload-panel h1,
+.dual-upload-panel h2,
+.dual-upload-panel h3,
+.dual-upload-panel h4 {
+  margin: 0 0 7px !important;
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em;
+  color: var(--text-primary) !important;
+}
+
+/* Small acquisition descriptor text */
+.dual-upload-panel .upload-description,
+.dual-upload-panel .step-description {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+/* THEN separator */
+.dual-upload-panel .then,
+.dual-upload-panel .then-label,
+.dual-upload-panel .upload-separator {
+  margin: 2px 0 5px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: .08em;
+  color: var(--text-muted) !important;
+  text-transform: uppercase;
+}
+
+/* Upload box typography */
+.dual-upload-panel .dropzone {
+  font-family: var(--font-sans);
+}
+
+.dual-upload-panel .dropzone strong,
+.dual-upload-panel .dropzone b {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dual-upload-panel .dropzone span,
+.dual-upload-panel .dropzone small {
+  font-size: 10px;
+  line-height: 1.3;
+}
+/* ================================================================
+   FINAL UPLOAD MODE TYPOGRAPHY FIX
+   ================================================================ */
+
+/* Single-image mode title */
+#single-upload-panel {
+  font-family: var(--font-sans);
+}
+
+#single-upload-panel .mode-chip-row,
+#single-upload-panel .upload-mode-title {
+  font-family: var(--font-sans) !important;
+}
+
+/* The "Single Scene VQA ï¿½ Caption ï¿½ Grounding" line */
+#single-upload-panel .mode-chip-row {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text-primary) !important;
+}
+
+/* Dual T1 / T2 labels */
+#dual-upload-panel {
+  font-family: var(--font-sans) !important;
+}
+
+#dual-upload-panel .upload-label,
+#dual-upload-panel .step-label,
+#dual-upload-panel .upload-title,
+#dual-upload-panel .acquisition-title {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text-primary) !important;
+}
+
+/* T1/T2 explanatory text */
+#dual-upload-panel .upload-subtitle,
+#dual-upload-panel .step-description,
+#dual-upload-panel .acquisition-subtitle {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  line-height: 1.3 !important;
+  color: var(--text-muted) !important;
+}
+
+/* THEN separator */
+#dual-upload-panel .then,
+#dual-upload-panel .then-label,
+#dual-upload-panel .upload-separator {
+  font-family: var(--font-mono) !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: .1em !important;
+  text-transform: uppercase !important;
+  color: var(--text-muted) !important;
+}
+/* ================================================================
+   T1 / T2 LABELS ï¿½ MATCH EXISTING SATQUERY UI
+   ================================================================ */
+
+.dual-upload-panel .upload-panel-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 7px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.dual-upload-panel .upload-panel-label > span:first-child {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.dual-upload-panel .upload-panel-hint {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+.dual-upload-panel .dual-upload-separator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .1em;
+  color: var(--text-muted);
+}
+
+.dual-upload-panel .dual-upload-separator::before,
+.dual-upload-panel .dual-upload-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.dual-upload-panel .dual-upload-separator span {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--text-muted);
+}
+/* ================================================================
+   SINGLE IMAGE MODE LABEL ï¿½ MATCH UPLOAD CARD SCALE
+   ================================================================ */
+
+#single-upload-panel {
+  margin-top: 0;
+}
+
+#single-upload-panel > div:first-child {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text-primary) !important;
+}
+
+#single-upload-panel .upload-panel-label,
+#single-upload-panel .mode-label,
+#single-upload-panel .upload-mode-label {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  color: var(--text-primary) !important;
+}
+
+/* If the label is plain text inside the panel */
+#single-upload-panel {
+  font-size: 13px;
+  line-height: 1.25;
+}
+/* ================================================================
+   UPLOAD CARD â€” SINGLE INNER SCROLLER
+   ================================================================ */
+
+.upload-content-scroll {
+  max-height: 430px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  margin-right: -2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.upload-content-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.upload-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.upload-content-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.upload-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* No independent scrolling inside T1/T2 */
+.upload-content-scroll .dual-upload-panel {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+/* Keep Demo Scenes part of the same scroll flow */
+.upload-content-scroll .demo-scene-list {
+  max-height: none;
+  overflow: visible;
+}/* ================================================================
+   FINAL UPLOAD CARD â€” ONE SHARED INNER SCROLLER
+   T1 + T2 + DEMO SCENES
+   ================================================================ */
+
+
+
+/* Tablet / mobile */
+@media (max-width: 1024px) {
+
+  .upload-content-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .upload-content-scroll .demo-scene-list {
+    max-height: 220px !important;
+    overflow-y: auto !important;
+  }
+}
+
+ /* === UPLOAD: SINGLE SHARED INNER SCROLLER === */
+
+
+/* ================================================================
+   FINAL FIX â€” SHARED UPLOAD SCROLLER ONLY
+   DO NOT ALTER WORKSPACE GRID / CANVAS / TRACE
+   ================================================================ */
+
+@media (min-width: 1025px) {
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child {
+    width: 320px !important;
+    min-width: 320px !important;
+    max-width: 320px !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child > .card-header {
+    flex: 0 0 auto !important;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child > .upload-mode-control {
+    flex: 0 0 auto !important;
+  }
+
+  .upload-content-scroll {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+
+    width: 100% !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-right: 5px !important;
+    box-sizing: border-box !important;
+  }
+
+  .upload-content-scroll .dual-upload-panel {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .upload-content-scroll .demo-scene-list {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .upload-content-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .upload-content-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .upload-content-scroll::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+}
+
+/* ============================================================================
+   SATQUERY AI — FINAL DUAL IMAGE UPLOAD SCROLLER
+   ---------------------------------------------------------------------------
+   Purpose:
+   • Keep the existing visual design/layout unchanged.
+   • When Dual Image is OFF: preserve normal single-scene behavior.
+   • When Dual Image is ON: ONLY the T1/T2 upload stack scrolls.
+   • Keep Upload header + mode switch fixed/visible.
+   • Keep Demo scenes visible below the T1/T2 area and independently scrollable.
+   • Never let T1/T2 push the fixed Upload card into the bottom query composer.
+   • Desktop only; mobile/tablet returns to natural page flow.
+   ============================================================================ */
+
+@media (min-width: 1025px) {
+
+  /* --------------------------------------------------------------------------
+     1. The fixed Upload card is a controlled vertical flex container.
+     -------------------------------------------------------------------------- */
+  .workspace-grid > .workspace-col:first-child > .card:first-child {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Header + upload mode control must never participate in scrolling. */
+  .workspace-grid > .workspace-col:first-child > .card:first-child > .card-header,
+  .workspace-grid > .workspace-col:first-child > .card:first-child > .upload-mode-control {
+    flex: 0 0 auto !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     2. SINGLE IMAGE MODE
+     Keep the existing single-scene appearance. No artificial scroll area.
+     -------------------------------------------------------------------------- */
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  #single-upload-panel:not([hidden]) {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     3. DUAL IMAGE MODE — THE IMPORTANT PART
+
+     T1 + THEN + T2 live in one dedicated viewport.
+     The scrollbar therefore appears beside the T1/T2 stack, not beside the
+     entire Upload card and not beside the whole page.
+     -------------------------------------------------------------------------- */
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  #dual-upload-panel:not([hidden]) {
+    flex: 1 1 auto !important;
+    min-height: 145px !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    /* Gives the scrollbar breathing room without changing card width. */
+    padding-right: 6px !important;
+    margin-right: -2px !important;
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* WebKit scrollbar — subtle and consistent with the rest of SatQuery. */
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  #dual-upload-panel:not([hidden])::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  #dual-upload-panel:not([hidden])::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  #dual-upload-panel:not([hidden])::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  #dual-upload-panel:not([hidden])::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  /* --------------------------------------------------------------------------
+     4. T1 / T2 CONTENT — prevent flex compression and preserve the exact
+        visual sizing of the two upload boxes.
+     -------------------------------------------------------------------------- */
+  #dual-upload-panel .upload-panel-label,
+  #dual-upload-panel .dual-dropzone,
+  #dual-upload-panel .dual-upload-separator {
+    flex-shrink: 0 !important;
+  }
+
+  #dual-upload-panel .dual-dropzone {
+    min-height: 145px !important;
+  }
+
+  #dual-upload-panel .dual-upload-separator {
+    flex: 0 0 auto !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     5. DEMO SCENES STAY OUTSIDE THE T1/T2 SCROLLER.
+
+     This is what makes the UX clean:
+       [fixed header]
+       [fixed mode switch]
+       [ T1 / THEN / T2 scroll area ]
+       [Demo scenes label]
+       [Demo scenes scroll area]
+     -------------------------------------------------------------------------- */
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .section-label.spaced {
+    flex: 0 0 auto !important;
+    margin-top: 12px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .demo-scene-list {
+    flex: 0 1 135px !important;
+    min-height: 82px !important;
+    max-height: 135px !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-right: 5px !important;
+    margin-right: -2px !important;
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .demo-scene-list::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .demo-scene-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .demo-scene-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .demo-scene-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  /* Don't let individual demo cards shrink when the list is constrained. */
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .demo-scene-list > .demo-scene-item {
+    flex: 0 0 auto !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     6. DUAL PANEL SPACING — compact enough for the judge-facing layout while
+        retaining the original typography and components.
+     -------------------------------------------------------------------------- */
+  #dual-upload-panel .upload-panel-label {
+    margin-top: 0 !important;
+    margin-bottom: 7px !important;
+  }
+
+  #dual-upload-panel .dual-upload-separator {
+    margin: 6px 0 !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     7. VERY SHORT DESKTOP VIEWPORTS
+     Give T1/T2 more usable space while keeping Demo Scenes accessible.
+     -------------------------------------------------------------------------- */
+  @media (max-height: 780px) {
+    .workspace-grid > .workspace-col:first-child > .card:first-child
+    #dual-upload-panel:not([hidden]) {
+      min-height: 120px !important;
+    }
+
+    .workspace-grid > .workspace-col:first-child > .card:first-child
+    > .demo-scene-list {
+      flex-basis: 105px !important;
+      min-height: 70px !important;
+      max-height: 105px !important;
+    }
+
+    #dual-upload-panel .dual-dropzone {
+      min-height: 125px !important;
+    }
+  }
+
+  /* --------------------------------------------------------------------------
+     8. TALL DESKTOP VIEWPORTS
+     Let the dual panel breathe naturally; no unnecessary giant scrollbar.
+     -------------------------------------------------------------------------- */
+  @media (min-height: 1000px) {
+    .workspace-grid > .workspace-col:first-child > .card:first-child
+    > .demo-scene-list {
+      flex-basis: 155px !important;
+      max-height: 155px !important;
+    }
+  }
+}
+
+/* ============================================================================
+   TABLET / MOBILE
+   ---------------------------------------------------------------------------
+   Do not trap the upload UI inside a fixed-height desktop scroller.
+   The page should naturally grow and remain touch friendly.
+   ============================================================================ */
+@media (max-width: 1024px) {
+  .workspace-grid > .workspace-col:first-child > .card:first-child {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  #dual-upload-panel:not([hidden]) {
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .workspace-grid > .workspace-col:first-child > .card:first-child
+  > .demo-scene-list {
+    max-height: 220px !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* ============================================================================
+   IMPORTANT: the existing stylesheet contains older rules for
+   .upload-content-scroll. The final rules above intentionally do NOT depend
+   on that wrapper, because the current HTML has T1/T2 directly inside
+   #dual-upload-panel.
+   ============================================================================ */
