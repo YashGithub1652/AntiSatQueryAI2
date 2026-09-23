@@ -1,0 +1,47 @@
+models:
+
+  geochat:
+    name: GeoChat-7B
+    role: remote_sensing_vlm
+    endpoint: http://127.0.0.1:8100
+    capabilities:
+      - single_vqa
+      - captioning
+      - grounding
+    scientific: true
+    remote_sensing_adapted: true
+    adapter_status: incomplete
+
+  remoteclip:
+    name: RemoteCLIP-ViT-B-32
+    role: remote_sensing_visual_encoder
+    capabilities:
+      - image_embedding
+      - image_text_alignment
+    scientific: true
+
+  changeformer:
+    name: ChangeFormer
+    role: bi_temporal_change_detection
+    capabilities:
+      - change_detection
+      - change_map
+
+  sar_fusion:
+    name: SAR-Optical Cross-Attention
+    role: cross_modal_fusion
+    capabilities:
+      - optical_sar_fusion
+    trained_checkpoint_required: true
+
+  rsvg:
+    name: RSVG
+    role: remote_sensing_grounding
+    capabilities:
+      - text_guided_grounding
+
+  sam:
+    name: SAM
+    role: segmentation
+    capabilities:
+      - segmentation

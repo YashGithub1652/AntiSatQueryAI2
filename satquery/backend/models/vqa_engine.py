@@ -10,6 +10,7 @@ Replaces: Previous hardcoded static string responses.
 """
 
 import time
+from io import BytesIO
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 
@@ -24,6 +25,41 @@ except ImportError:
 from PIL import Image
 
 from .model_loader import get_model_loader
+
+from backend.models.geochat_client import run_geochat
+
+
+def execute_geochat_vqa(
+    image_bytes: bytes,
+    query: str,
+) -> dict:
+
+    result = run_geochat(
+        image_bytes=image_bytes,
+        query=query,
+    )
+
+    if result["success"]:
+
+        return {
+            "success": True,
+            "answer": result["answer"],
+            "model_used": "GeoChat-7B",
+            "scientific": True,
+            "fallback": False,
+            "confidence": None,
+            "error": None,
+        }
+
+    return {
+        "success": False,
+        "answer": "",
+        "model_used": "GeoChat-7B",
+        "scientific": False,
+        "fallback": False,
+        "confidence": 0.0,
+        "error": result["error"],
+    }
 
 logger = logging.getLogger(__name__)
 
@@ -111,24 +147,139 @@ class VQAEngine:
         # Convert to PIL
         pil_img = self._array_to_pil(image_array)
 
-        # Try GeoChat if GPU is available
+        # -------------------------------------------------------------
+        # Primary GeoChat inference through the dedicated GeoChat host.
+        #
+        # IMPORTANT:
+        # Do NOT call ModelLoader.get_geochat() here.
+        # GeoChat has its own official architecture/runtime and is
+        # isolated behind backend.models.geochat_client.
+        # -------------------------------------------------------------
+
         answer = None
         model_name = None
         land_cover_probs = {}
-        confidence = 0.90
+        confidence = 0.0
+
+        scientific = False
+        fallback_used = False
+        primary_model_status = "NOT_EXECUTED"
+        primary_model_error = None
 
         if self._device == "cuda":
+
             try:
-                answer, model_name = self._run_geochat(pil_img, augmented_query)
-            except Exception as e:
-                logger.warning(f"GeoChat inference failed: {e}. Falling back to dynamic spectral diagnostic.")
+
+                image_buffer = BytesIO()
+
+                pil_img.save(
+                    image_buffer,
+                    format="PNG",
+                )
+
+                image_bytes = image_buffer.getvalue()
+
+                geochat_result = execute_geochat_vqa(
+                    image_bytes=image_bytes,
+                    query=augmented_query,
+                )
+
+                if geochat_result["success"]:
+
+                    answer = geochat_result["answer"]
+                    model_name = "GeoChat-7B"
+                    scientific = True
+                    fallback_used = False
+                    primary_model_status = "MODEL_SUCCESS"
+                    confidence = 0.0
+
+                else:
+
+                    primary_model_status = "MODEL_FAILED"
+                    primary_model_error = geochat_result.get(
+                        "error",
+                        "GeoChat inference failed.",
+                    )
+
+                    logger.warning(
+                        "GeoChat inference failed: %s. "
+                        "Using explicitly marked diagnostic fallback.",
+                        primary_model_error,
+                    )
+
+            except Exception as exc:
+
+                primary_model_status = "MODEL_FAILED"
+                primary_model_error = str(exc)
+
+                logger.exception(
+                    "GeoChat service execution failed."
+                )
+
+        else:
+
+            primary_model_status = "MODEL_BLOCKED"
+            primary_model_error = (
+                "CUDA unavailable; GeoChat primary inference "
+                "requires the configured GPU environment."
+            )
+
+        # -------------------------------------------------------------
+        # Explicit fallback.
+        #
+        # This is NEVER presented as GeoChat VQA.
+        # -------------------------------------------------------------
 
         if answer is None:
-            # High-precision dynamic pixel-based spectral/spatial diagnostic
-            answer, land_cover_probs, confidence = self._run_spectral_diagnostic(
-                image_array, query, metadata, task_type
+
+            (
+                answer,
+                land_cover_probs,
+                confidence,
+            ) = self._run_spectral_diagnostic(
+                image_array,
+                query,
+                metadata,
+                task_type,
             )
-            model_name = "SatQuery Spectral-Spatial Diagnostic Engine (ISRO/NRSC Level-2A)"
+
+            model_name = (
+                "SatQuery Spectral-Spatial Diagnostic Engine "
+                "(ISRO/NRSC Level-2A)"
+            )
+
+            scientific = False
+            fallback_used = True
+
+        # -------------------------------------------------------------
+        # Optional RemoteCLIP confidence / class evidence.
+        # -------------------------------------------------------------
+
+        if not land_cover_probs:
+
+            try:
+
+                clip_conf, clip_probs = (
+                    self._compute_confidence(
+                        pil_img,
+                        query,
+                    )
+                )
+
+                if clip_probs:
+
+                    land_cover_probs = clip_probs
+
+                    # Only use CLIP confidence for fallback output.
+                    if fallback_used:
+                        confidence = clip_conf
+
+            except Exception as e:
+
+                logger.debug(
+                    "CLIP confidence scoring skipped: %s",
+                    e,
+                )
 
         # Optionally refine confidence with RemoteCLIP if available and non-blocking
         if not land_cover_probs:
@@ -149,49 +300,17 @@ class VQAEngine:
             "spectral_context": spectral_context,
             "latency_sec": latency,
             "model_used": model_name,
+
+            "scientific": scientific,
+            "fallback": fallback_used,
+            "primary_model_status": primary_model_status,
+            "primary_model_error": primary_model_error,
         }
 
     # ──────────────────────────────────────────────────────────
     # GEOCHAT INFERENCE
     # ──────────────────────────────────────────────────────────
 
-    def _run_geochat(self, pil_img: Image.Image, query: str) -> tuple:
-        """Run GeoChat-7B forward pass."""
-        model, processor = self.loader.get_geochat()
-
-        prompt = GEOCHAT_PROMPT_TEMPLATE.format(
-            system=GEOCHAT_SYSTEM_PROMPT,
-            query=query,
-        )
-
-        inputs = processor(
-            text=prompt,
-            images=pil_img,
-            return_tensors="pt",
-        )
-
-        # Move to device
-        inputs = {k: v.to(self._device) if hasattr(v, "to") else v
-                  for k, v in inputs.items()}
-
-        with torch.no_grad():
-            output_ids = model.generate(
-                **inputs,
-                max_new_tokens=256,
-                do_sample=False,
-                temperature=1.0,
-                repetition_penalty=1.1,
-            )
-
-        # Decode only the generated tokens (not the prompt)
-        input_len = inputs["input_ids"].shape[1] if "input_ids" in inputs else 0
-        generated = output_ids[0][input_len:]
-        answer = processor.decode(generated, skip_special_tokens=True).strip()
-
-        status = self.loader._load_status.get("geochat", "GeoChat-7B")
-        return answer, status
-
-    # ──────────────────────────────────────────────────────────
     # REMOTECLIP CONFIDENCE SCORING
     # ──────────────────────────────────────────────────────────
 
@@ -289,7 +408,8 @@ class VQAEngine:
 
         C, H, W = arr.shape
         num_pixels = H * W
-        res_m = float(metadata.get("resolution_m", 10.0)) if metadata else 10.0
+        res_raw = metadata.get("resolution_m") if metadata else None
+        res_m = float(res_raw) if res_raw is not None else 10.0
         sensor = str(metadata.get("sensor", "Multispectral Sentinel-2 / Cartosat")).replace("_", " ").title() if metadata else "Multispectral Optical"
         
         pixel_area_ha = (res_m * res_m) / 10000.0
@@ -534,3 +654,5 @@ def get_vqa_engine() -> VQAEngine:
     if _vqa_engine is None:
         _vqa_engine = VQAEngine()
     return _vqa_engine
+
+

@@ -114,7 +114,7 @@ class GeoTIFFLoader:
         if ext in (".tif", ".tiff", ".geotiff") and RASTERIO_AVAILABLE:
             return self._load_geotiff_bytes(file_bytes)
         elif ext in (".png", ".jpg", ".jpeg"):
-            return self._load_rgb_bytes(file_bytes)
+            return self._load_rgb_bytes(file_bytes, ext)
         else:
             raise ValueError(f"Unsupported format: {ext}")
 
@@ -198,13 +198,14 @@ class GeoTIFFLoader:
 
     def _load_rgb(self, file_path: str) -> Dict[str, Any]:
         img = Image.open(file_path).convert("RGB")
-        return self._process_pil(img)
+        ext = os.path.splitext(file_path)[1].lower()
+        return self._process_pil(img, ext)
 
-    def _load_rgb_bytes(self, file_bytes: bytes) -> Dict[str, Any]:
+    def _load_rgb_bytes(self, file_bytes: bytes, ext: str = ".jpg") -> Dict[str, Any]:
         img = Image.open(io.BytesIO(file_bytes)).convert("RGB")
-        return self._process_pil(img)
+        return self._process_pil(img, ext)
 
-    def _process_pil(self, img: Image.Image) -> Dict[str, Any]:
+    def _process_pil(self, img: Image.Image, ext: str = ".jpg") -> Dict[str, Any]:
         arr = np.array(img, dtype=np.float32) / 255.0   # [H, W, 3] normalized
         arr_chw = arr.transpose(2, 0, 1)                 # [3, H, W]
 
@@ -218,7 +219,7 @@ class GeoTIFFLoader:
             "rgb_preview": rgb_resized,
             "rgb_b64": rgb_b64,
             "metadata": {
-                "format": "PNG/JPEG",
+                "format": "PNG" if ext == ".png" else "JPEG",
                 "sensor": "generic_rgb",
                 "modality": "rgb",
                 "band_count": 3,
@@ -430,3 +431,9 @@ def get_loader(target_size: int = 256) -> GeoTIFFLoader:
             _loader_224 = GeoTIFFLoader(target_size=224)
         return _loader_224
     return GeoTIFFLoader(target_size=target_size)
+
+
+
+
+
+

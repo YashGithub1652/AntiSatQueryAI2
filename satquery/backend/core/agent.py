@@ -1,24 +1,24 @@
-﻿"""
-SatQuery AI â€” Real Agentic Controller
+"""
+SatQuery AI — Real Agentic Controller
 ========================================
 LangGraph-based 8-node state machine that orchestrates all ML models.
 Replaces the previous ad-hoc keyword-matching if/else routing.
 
 Graph topology:
   parse_query
-      â”‚
+      │
   validate_inputs
-      â”‚
+      │
   check_coregistration   (only for image pairs)
-      â”‚
-  classify_task          (LLM intent + image metadata â†’ task type)
-      â”‚
+      │
+  classify_task          (LLM intent + image metadata → task type)
+      │
   route_models           (reads model_registry.yaml routing table)
-      â”‚
+      │
   execute_pipeline       (dispatches to specialist ML engines)
-      â”‚
+      │
   aggregate_outputs      (merges text + visual results)
-      â”‚
+      │
   generate_audit_log     (immutable execution record)
 
 Key design principle from SIH docs:
@@ -46,9 +46,9 @@ from .confidence import (
 
 logger = logging.getLogger(__name__)
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # Load model registry (task routing table)
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 _REGISTRY_PATH = config_path("model_registry.yaml")
 
 def _load_registry() -> Dict:
@@ -60,9 +60,9 @@ def _load_registry() -> Dict:
 MODEL_REGISTRY = _load_registry()
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # Agent State Schema
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 
 class AgentState(TypedDict, total=False):
     """Shared state passed between all graph nodes."""
@@ -83,9 +83,9 @@ class AgentState(TypedDict, total=False):
     start_time: float
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # TASK TYPES
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 
 TASK_TYPES = {
     "SINGLE_VQA": "Single image question answering",
@@ -93,7 +93,7 @@ TASK_TYPES = {
     "REGION_GROUNDING": "Text-guided region localization",
     "BI_TEMPORAL_CHANGE": "Bi-temporal change detection",
     "CROSS_MODAL_SAR_OPTICAL": "SAR + Optical cross-modal fusion",
-    "CLARIFICATION_NEEDED": "Ambiguous â€” needs user clarification",
+    "CLARIFICATION_NEEDED": "Ambiguous — needs user clarification",
 }
 
 # Keyword-based intent patterns (enhanced fallback classifier)
@@ -124,9 +124,9 @@ INTENT_PATTERNS = {
 }
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # GRAPH NODES
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 
 def node_parse_query(state: AgentState) -> AgentState:
     """
@@ -248,7 +248,7 @@ def node_check_coregistration(state: AgentState) -> AgentState:
             state,
             node_name,
             "skipped",
-            "Single image â€” registration not required",
+            "Single image — registration not required",
             time.time() - t0,
         )
 
@@ -403,7 +403,7 @@ def node_classify_task(state: AgentState) -> AgentState:
         has_sar = "sar" in modalities
         has_optical = "optical" in modalities or "rgb" in modalities
 
-        # If one SAR + one optical â†’ force fusion task (regardless of query)
+        # If one SAR + one optical → force fusion task (regardless of query)
         if has_sar and has_optical:
             if task_type not in ("CROSS_MODAL_SAR_OPTICAL",):
                 task_type = "CROSS_MODAL_SAR_OPTICAL"
@@ -412,7 +412,7 @@ def node_classify_task(state: AgentState) -> AgentState:
                     "Routing to CROSS_MODAL_SAR_OPTICAL."
                 )
 
-        # Two optical images â†’ change detection
+        # Two optical images → change detection
         elif has_optical and not has_sar:
             query_lower = state["query"].lower()
             temporal_signals = any(k in query_lower for k in [
@@ -422,15 +422,28 @@ def node_classify_task(state: AgentState) -> AgentState:
             if temporal_signals or task_type in ("SINGLE_VQA", "UNKNOWN", "CAPTIONING"):
                 task_type = "BI_TEMPORAL_CHANGE"
                 parse["override_reason"] = (
-                    "Two optical images with temporal / flood context â€” "
+                    "Two optical images with temporal / flood context — "
                     "routing to BI_TEMPORAL_CHANGE."
                 )
 
-    # Ambiguous query + two non-SAR images â†’ clarification
+    # Ambiguous query + two non-SAR images → clarification
     if (task_type == "UNKNOWN" or task_type == "CLARIFICATION_NEEDED") and n_images > 1:
         modalities = [img.get("modality") for img in images]
         if "sar" not in modalities:
             task_type = "CLARIFICATION_NEEDED"
+
+    # Single-image execution invariant:
+    # comparison/fusion tasks require two images.
+    # Never allow a forced multi-image mode to execute on one image.
+    if n_images == 1 and task_type in (
+        "BI_TEMPORAL_CHANGE",
+        "CROSS_MODAL_SAR_OPTICAL",
+    ):
+        task_type = "SINGLE_VQA"
+        parse["override_reason"] = (
+            "Single image supplied. Multi-image comparison/fusion mode "
+            "was rejected and routing was normalized to SINGLE_VQA."
+        )
 
     # Single image default
     if n_images == 1 and task_type in ("UNKNOWN", "CLARIFICATION_NEEDED"):
@@ -575,7 +588,7 @@ def node_execute_pipeline(state: AgentState) -> AgentState:
                 elif img1_mod == "sar":
                     sar_img, optical_img = images[1], images[0]
                 else:
-                    # Both optical â€” treat as pseudo-fusion (still runs architecture)
+                    # Both optical — treat as pseudo-fusion (still runs architecture)
                     sar_img, optical_img = images[0], images[1]
 
                 # Preprocess SAR
@@ -784,10 +797,10 @@ def node_aggregate_outputs(state: AgentState) -> AgentState:
             "message": raw.get("message", ""),
         })
 
-    # â”€â”€ Universal Answer Guarantee â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Universal Answer Guarantee ──────────────────────────────
     if "answer" not in final or not final["answer"]:
         if task_type == "BI_TEMPORAL_CHANGE":
-            final["answer"] = raw.get("description") or f"Bi-temporal change detected across {final.get('change_pct', 0)}% of the target area ({final.get('changed_area_km2', 0)} kmÂ²)."
+            final["answer"] = raw.get("description") or f"Bi-temporal change detected across {final.get('change_pct', 0)}% of the target area ({final.get('changed_area_km2', 0)} km²)."
         elif task_type == "CROSS_MODAL_SAR_OPTICAL":
             final["answer"] = raw.get("fused_findings") or raw.get("optical_findings") or "SAR-optical cross-attention synthesis complete."
         elif task_type == "REGION_GROUNDING":
@@ -797,23 +810,23 @@ def node_aggregate_outputs(state: AgentState) -> AgentState:
         else:
             final["answer"] = raw.get("answer") or "Analysis completed successfully."
 
-    # â”€â”€ Raw Change Map Pass-through for Session IoU Evaluation â”€â”€
+    # ── Raw Change Map Pass-through for Session IoU Evaluation ──
     if raw.get("_change_map_raw") is not None:
         state["_change_map_raw"] = raw["_change_map_raw"]
         final["_change_map_raw"] = raw["_change_map_raw"]
 
-    # â”€â”€ Structured Findings for UI Stats & ReportLab PDF â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Structured Findings for UI Stats & ReportLab PDF ────────
     findings = []
     if task_type == "BI_TEMPORAL_CHANGE":
         findings.append({"category": "Changed Extent", "detail": f"{final.get('change_pct', 0)}% of total scene area"})
-        findings.append({"category": "Surface Area", "detail": f"{final.get('changed_area_km2', 0)} kmÂ² computed at 10m GSD"})
+        findings.append({"category": "Surface Area", "detail": f"{final.get('changed_area_km2', 0)} km² computed at 10m GSD"})
         n_reg = final.get("change_stats", {}).get("n_change_regions", 0)
         findings.append({"category": "Change Clusters", "detail": f"{n_reg} contiguous spatial change parcels"})
         final["change_analysis"] = {
             "summary": final["answer"],
             "change_metrics": {
                 "change_percentage": f"{final.get('change_pct', 0)}%",
-                "changed_area": f"{final.get('changed_area_km2', 0)} kmÂ²",
+                "changed_area": f"{final.get('changed_area_km2', 0)} km²",
                 "regions": n_reg
             },
             "confidence": final.get("confidence", 0.90)
@@ -929,9 +942,9 @@ def node_generate_audit_log(state: AgentState) -> AgentState:
     return state
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # MAIN AGENT RUNNER
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 
 def run_agent(
     query: str,
@@ -988,7 +1001,7 @@ def run_agent(
                 stream_callback(node_label, "running", f"Starting {node_label}...")
             state = node_fn(state)
             if stream_callback:
-                stream_callback(node_label, "done", "âœ“ Completed")
+                stream_callback(node_label, "done", "✓ Completed")
 
             # Early exit if clarification needed (no point running models)
             if state.get("task_type") == "CLARIFICATION_NEEDED" and node_label.startswith("Node 5"):
@@ -1020,9 +1033,9 @@ def run_agent(
     return res
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # INTENT CLASSIFICATION HELPERS
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 
 def _parse_with_llm(query: str) -> Optional[Dict]:
     """
@@ -1061,7 +1074,7 @@ Respond with ONLY a JSON object like:
                     logger.info(f"Ollama classified: {result['intent']}")
                     return result
     except Exception:
-        pass  # Ollama not available â€” silently fall through to keyword fallback
+        pass  # Ollama not available — silently fall through to keyword fallback
     return None
 
 
@@ -1093,9 +1106,9 @@ def _parse_with_keywords(query: str) -> Dict:
     }
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # TRACE LOGGING HELPERS
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 
 def _log_node_start(state: AgentState, node_name: str, detail: str):
     state["trace_log"].append({
@@ -1158,9 +1171,9 @@ def _cache_to_session(state: AgentState, result: Dict, task_type: str):
         logger.warning(f"Session caching failed: {e}")
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 # AGENTIC CONTROLLER (CLASS WRAPPER)
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ──────────────────────────────────────────────────────────────
 
 class AgenticController:
     """
@@ -1182,7 +1195,7 @@ class AgenticController:
         images = []
         eff_mode = requested_mode or (scenario_data.get("default_mode") if scenario_data else None)
         if scenario_data:
-            from ...data.scenarios import generate_scenario_images
+            from data.scenarios import generate_scenario_images
             sc_id = scenario_data.get("id", "custom")
             imgs = generate_scenario_images(sc_id)
             t1_b64 = imgs.get("image_t1", "")
@@ -1199,7 +1212,7 @@ class AgenticController:
             import io
             import base64
 
-            # Parse resolution_m from scenario (e.g. "10m GSD" â†’ 10.0, "0.65m Optical..." â†’ 0.65)
+            # Parse resolution_m from scenario (e.g. "10m GSD" → 10.0, "0.65m Optical..." → 0.65)
             def _parse_resolution_m(res_str: str) -> float:
                 import re
                 m = re.search(r"([\d.]+)\s*m", str(res_str))
@@ -1219,7 +1232,7 @@ class AgenticController:
                         raw = base64.b64decode(b64_str.split(",")[-1])
                         pil_img = Image.open(io.BytesIO(raw)).convert("RGB")
 
-                        # â”€â”€ Critical fix: normalize to [C, H, W] float32 [0, 1] â”€â”€
+                        # ── Critical fix: normalize to [C, H, W] float32 [0, 1] ──
                         # All ML engines (VQA, change, SAR) expect this format.
                         np_hwc = np.array(pil_img, dtype=np.float32) / 255.0  # [H, W, 3]
                         np_arr = np_hwc.transpose(2, 0, 1)                    # [3, H, W]

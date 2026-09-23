@@ -13,6 +13,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentImages = null;           // Loaded from real backend upload
   let currentScenarioMeta = null;     // Compat shim for legacy UI refs
   let currentScenarioId = null;       // Selected Indian benchmark scenario ID
+
+  // Canvas source/state:
+  // scenario    = benchmark scenario supplied by the app
+  // single_upload = one user-uploaded image
+  // dual_upload   = two user-uploaded acquisitions
+  let canvasSource = "scenario";
+  const canvasArtifacts = {
+    water: false,
+    vegetation: false,
+    change: false,
+  };
   let allScenarios = [];              // Catalog loaded from backend
   let lastAnalysisResult = null;
   let lastAnalysisMode = null;
@@ -211,6 +222,10 @@ document.addEventListener("DOMContentLoaded", () => {
   async function selectScenario(scenarioId) {
     currentScenarioId = scenarioId;
     currentSessionId = null; // Clear session to use scenario mode
+
+    // Switching to a benchmark scenario clears any previous upload artifacts.
+    canvasSource = "scenario";
+    clearDerivedCanvasLayers();
     const sc = allScenarios.find(s => s.id === scenarioId);
     if (!sc) return;
     currentScenarioMeta = sc;
@@ -262,9 +277,20 @@ document.addEventListener("DOMContentLoaded", () => {
           if (cdImgT2) cdImgT2.src = imgs.image_t2;
           if (sceneThumb2) sceneThumb2.src = imgs.image_t2;
         }
-        if (imgs.image_sar && imgSar) imgSar.src = imgs.image_sar;
-        if (imgs.image_fused && imgFused) imgFused.src = imgs.image_fused;
-        if (imgs.image_change && imgChange) imgChange.src = imgs.image_change;
+        if (imgs.image_sar && imgSar) {
+          imgSar.src = imgs.image_sar;
+          canvasArtifacts.water = true;
+        }
+
+        if (imgs.image_fused && imgFused) {
+          imgFused.src = imgs.image_fused;
+          canvasArtifacts.vegetation = true;
+        }
+
+        if (imgs.image_change && imgChange) {
+          imgChange.src = imgs.image_change;
+          canvasArtifacts.change = true;
+        }
 
         if (canvasSceneLabel) canvasSceneLabel.innerHTML = `SCENE <b>${sc.title}</b>`;
         if (canvasSensorLabel) canvasSensorLabel.textContent = `${sc.optical_bands || 'MSI'} · ${sc.resolution || '10m'}`;
@@ -272,7 +298,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (canvasArea) canvasArea.textContent = `CRS ${sc.crs || '--'}`;
         if (canvasBands) canvasBands.textContent = sc.sar_bands || 'Bands: Optical + SAR';
 
-        setCanvasLayer("split");
+        // A benchmark scenario may contain T1/T2 imagery, but the
+        // workspace must respect the current Dual Image mode.
+        // Dual OFF = single-scene canvas; Dual ON = comparison canvas.
+        setCanvasLayer(
+          dualUploadEnabled && imgs.image_t2
+            ? "split"
+            : "single"
+        );
       }
     } catch (e) {
       console.warn("Could not load scenario images:", e);
@@ -284,6 +317,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Upload: single or pair ────────────────────────────────
   async function uploadImages(files) {
     if (!files || files.length === 0) return;
+
+    // A user upload becomes the active source.
+    // Never retain benchmark-scenario layers or metadata.
+    currentScenarioId = null;
+    currentScenarioMeta = null;
+    canvasSource = files.length === 1 ? "single_upload" : "dual_upload";
+
+    clearDerivedCanvasLayers();
+
+    if (imgT2) imgT2.src = "";
+    if (cdImgT2) cdImgT2.src = "";
+
     showLoading("Uploading & parsing geospatial metadata...");
     uploadStatusBadge.textContent = `● Uploading ${files.length} file(s)...`;
 
@@ -376,7 +421,11 @@ document.addEventListener("DOMContentLoaded", () => {
       queryChipsContainer.appendChild(chip);
     });
     if (queries.length) queryInput.value = queries[0];
-    setCanvasLayer("split");
+
+    // One uploaded image = single-scene canvas.
+    // Two uploaded images = comparison canvas.
+    canvasSource = img2Data ? "dual_upload" : "single_upload";
+    setCanvasLayer(img2Data ? "split" : "single");
   }
 
   function _defaultQueriesForSensor(sensor, nImages) {
@@ -488,29 +537,116 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("touchend", () => { isDraggingSlider = null; });
 
   // ---------- Layer Management ----------
-  function setCanvasLayer(mode) {
-    canvasToggles.forEach(b => b.classList.remove("active"));
-    imgSar.style.display = "none";
-    imgFused.style.display = "none";
-    imgChange.style.display = "none";
-    sliderWrapper.style.display = "none";
-    sliderDivider.style.display = "none";
+  function clearDerivedCanvasLayers() {
+    [imgSar, imgFused, imgChange].forEach(img => {
+      if (!img) return;
+      img.src = "";
+      img.style.display = "none";
+    });
 
-    const map = { split: "canvas-toggle-split", sar: "canvas-toggle-water", fused: "canvas-toggle-veg", change: "canvas-toggle-change" };
-    const btn = $(map[mode]);
-    if (btn) btn.classList.add("active");
+    canvasArtifacts.water = false;
+    canvasArtifacts.vegetation = false;
+    canvasArtifacts.change = false;
+  }
+
+  function canvasLayerAvailable(mode) {
+    if (mode === "single") {
+      return !!(imgT1 && imgT1.src);
+    }
 
     if (mode === "split") {
-      sliderWrapper.style.display = "block";
-      sliderDivider.style.display = "block";
-    } else if (mode === "sar") {
-      imgSar.style.display = "block";
-    } else if (mode === "fused") {
-      imgFused.style.display = "block";
-    } else if (mode === "change") {
-      imgT1.style.display = "block";
-      imgChange.style.display = "block";
+      return !!(
+        imgT1 &&
+        imgT1.src &&
+        imgT2 &&
+        imgT2.src &&
+        (canvasSource === "scenario" || canvasSource === "dual_upload")
+      );
     }
+
+    if (mode === "sar") {
+      return !!(canvasArtifacts.water && imgSar && imgSar.src);
+    }
+
+    if (mode === "fused") {
+      return !!(canvasArtifacts.vegetation && imgFused && imgFused.src);
+    }
+
+    if (mode === "change") {
+      return !!(canvasArtifacts.change && imgChange && imgChange.src);
+    }
+
+    return false;
+  }
+
+  function syncCanvasControls() {
+    const availability = {
+      split: canvasLayerAvailable("split"),
+      sar: canvasLayerAvailable("sar"),
+      fused: canvasLayerAvailable("fused"),
+      change: canvasLayerAvailable("change"),
+    };
+
+    canvasToggles.forEach(btn => {
+      const mode = btn.dataset.mode;
+      const available = availability[mode] === true;
+
+      btn.disabled = !available;
+
+      // Split should only exist when a real two-image comparison is possible.
+      if (mode === "split") {
+        btn.hidden = !available;
+      } else {
+        btn.hidden = false;
+      }
+
+      btn.classList.toggle("unavailable", !available);
+    });
+  }
+
+  function setCanvasLayer(mode) {
+    // Never display a layer that has no real data.
+    if (mode !== "single" && !canvasLayerAvailable(mode)) {
+      mode = canvasLayerAvailable("split") ? "split" : "single";
+    }
+
+    canvasToggles.forEach(b => b.classList.remove("active"));
+
+    if (imgT1) imgT1.style.display = "none";
+    if (imgT2) imgT2.style.display = "none";
+    if (imgSar) imgSar.style.display = "none";
+    if (imgFused) imgFused.style.display = "none";
+    if (imgChange) imgChange.style.display = "none";
+
+    if (sliderWrapper) sliderWrapper.style.display = "none";
+    if (sliderDivider) sliderDivider.style.display = "none";
+
+    const map = {
+      split: "canvas-toggle-split",
+      sar: "canvas-toggle-water",
+      fused: "canvas-toggle-veg",
+      change: "canvas-toggle-change"
+    };
+
+    const btn = $(map[mode]);
+    if (btn && !btn.disabled) btn.classList.add("active");
+
+    if (mode === "single") {
+      if (imgT1) imgT1.style.display = "block";
+    } else if (mode === "split") {
+      if (imgT1) imgT1.style.display = "block";
+      if (sliderWrapper) sliderWrapper.style.display = "block";
+      if (sliderDivider) sliderDivider.style.display = "block";
+    } else if (mode === "sar") {
+      if (imgSar) imgSar.style.display = "block";
+    } else if (mode === "fused") {
+      if (imgFused) imgFused.style.display = "block";
+    } else if (mode === "change") {
+      if (imgT1) imgT1.style.display = "block";
+      if (imgChange) imgChange.style.display = "block";
+    }
+
+    syncCanvasControls();
   }
 
   // ---------- Events ----------
@@ -533,10 +669,19 @@ document.addEventListener("DOMContentLoaded", () => {
     zoomInBtn.addEventListener("click", () => { canvasZoom = Math.min(2, canvasZoom + 0.15); applyZoom(); });
     zoomOutBtn.addEventListener("click", () => { canvasZoom = Math.max(1, canvasZoom - 0.15); applyZoom(); });
     layersCycleBtn.addEventListener("click", () => {
-      const order = ["split", "sar", "fused", "change"];
+      const order = ["single", "split", "sar", "fused", "change"];
+      const available = order.filter(mode => canvasLayerAvailable(mode));
+
+      if (!available.length) return;
+
       const activeBtn = document.querySelector(".canvas-toggle.active");
-      const currentIdx = activeBtn ? order.indexOf(activeBtn.dataset.mode) : 0;
-      setCanvasLayer(order[(currentIdx + 1) % order.length]);
+      const activeMode = activeBtn ? activeBtn.dataset.mode : null;
+      const currentIdx = available.indexOf(activeMode);
+      const nextIdx = currentIdx >= 0
+        ? (currentIdx + 1) % available.length
+        : 0;
+
+      setCanvasLayer(available[nextIdx]);
     });
 
     function applyZoom() {
@@ -569,24 +714,34 @@ document.addEventListener("DOMContentLoaded", () => {
       runAnalysis(queryInput.value);
     });
 
-    uploadBrowseBtn.addEventListener("click", () => uploadFileInput.click());
         // ---------- Upload mode controller ----------
 
     function updateAnalysisModes() {
       const multiImageModes = ["bi_temporal", "sar_fusion"];
+      const singleImageModes = ["single_vqa", "captioning", "grounding"];
 
       modeChipRow.querySelectorAll(".mode-chip").forEach(chip => {
-        const isMultiImageMode = multiImageModes.includes(chip.dataset.mode);
+        const mode = chip.dataset.mode;
+        const isMultiImageMode = multiImageModes.includes(mode);
+        const isSingleImageMode = singleImageModes.includes(mode);
 
-        chip.disabled = !dualUploadEnabled && isMultiImageMode;
+        if (!dualUploadEnabled) {
+          chip.disabled = isMultiImageMode;
+        } else {
+          chip.disabled = isSingleImageMode;
+        }
 
-        if (!dualUploadEnabled && isMultiImageMode) {
+        if (chip.disabled) {
           chip.classList.remove("active");
         }
       });
 
       if (!dualUploadEnabled && multiImageModes.includes(currentMode)) {
         currentMode = "single_vqa";
+      }
+
+      if (dualUploadEnabled && singleImageModes.includes(currentMode)) {
+        currentMode = "bi_temporal";
       }
 
       syncModeChips();
@@ -605,7 +760,7 @@ document.addEventListener("DOMContentLoaded", () => {
         dualUploadToggleText.textContent = "Dual Image ON";
 
         uploadModeSubtitle.textContent =
-          "Two acquisitions · Change detection / SAR fusion";
+          "Two acquisitions ? Change detection / SAR fusion";
 
         currentMode = "bi_temporal";
 
@@ -626,7 +781,17 @@ document.addEventListener("DOMContentLoaded", () => {
         dualUploadT1 = null;
         dualUploadT2 = null;
 
+        // Leaving Dual Image mode must completely return the workspace
+        // to a single-scene state. Do not retain the previous T2/split view.
+        if (imgT2) imgT2.src = "";
+        if (cdImgT2) cdImgT2.src = "";
+        if (imgChange) imgChange.src = "";
+
+        canvasSource = currentSessionId ? "single_upload" : "scenario";
+        canvasArtifacts.change = false;
+
         currentMode = "single_vqa";
+        setCanvasLayer("single");
       }
 
       updateAnalysisModes();
@@ -812,24 +977,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // single-image analysis enabled
     // multi-image analysis disabled
     setDualUploadMode(false);
-    uploadDropzone.addEventListener("click", (e) => { if (e.target === uploadDropzone) uploadFileInput.click(); });
-    uploadFileInput.addEventListener("change", () => {
-      if (uploadFileInput.files.length) {
-        uploadedFiles = Array.from(uploadFileInput.files);
-        uploadStatusBadge.textContent = `● ${uploadedFiles.map(f => f.name).join(" + ")}`;
-        uploadImages(uploadedFiles);
-      }
-    });
-    ["dragover", "dragenter"].forEach(evt => uploadDropzone.addEventListener(evt, (e) => {
-      e.preventDefault(); uploadDropzone.style.borderColor = "var(--green-fg)";
-    }));
-    uploadDropzone.addEventListener("drop", (e) => {
-      e.preventDefault(); uploadDropzone.style.borderColor = "";
-      const files = Array.from(e.dataTransfer.files);
-      if (files.length) { uploadedFiles = files; uploadImages(files); }
-    });
-    uploadDropzone.addEventListener("dragleave", (e) => { e.preventDefault(); uploadDropzone.style.borderColor = ""; });
-
     replayTraceBtn.addEventListener("click", () => {
       if (lastAnalysisResult) renderTrace(lastAnalysisResult.trace_log || lastAnalysisResult.trace || [], true);
     });
@@ -972,20 +1119,71 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function _updateCanvasFromResult(data) {
     const tt = data.task_type;
+
     if (tt === "BI_TEMPORAL_CHANGE") {
-      if (data.t1_preview_b64 && imgT1) imgT1.src = data.t1_preview_b64;
-      if (data.t2_preview_b64 && imgT2) imgT2.src = data.t2_preview_b64;
-      if (data.overlay_b64 && imgChange) { imgChange.src = data.overlay_b64; setCanvasLayer("change"); }
-      if (data.t1_preview_b64 && cdImgT1) cdImgT1.src = data.t1_preview_b64;
-      if (data.t2_preview_b64 && cdImgT2) cdImgT2.src = data.t2_preview_b64;
+      canvasSource = "dual_upload";
+
+      if (data.t1_preview_b64 && imgT1) {
+        imgT1.src = data.t1_preview_b64;
+      }
+
+      if (data.t2_preview_b64 && imgT2) {
+        imgT2.src = data.t2_preview_b64;
+      }
+
+      if (data.overlay_b64 && imgChange) {
+        imgChange.src = data.overlay_b64;
+        canvasArtifacts.change = true;
+        setCanvasLayer("change");
+      }
+
+      if (data.t1_preview_b64 && cdImgT1) {
+        cdImgT1.src = data.t1_preview_b64;
+      }
+
+      if (data.t2_preview_b64 && cdImgT2) {
+        cdImgT2.src = data.t2_preview_b64;
+      }
+
+      syncCanvasControls();
+
     } else if (tt === "CROSS_MODAL_SAR_OPTICAL") {
-      if (data.optical_preview_b64 && imgT1) imgT1.src = data.optical_preview_b64;
-      if (data.sar_preview_b64 && imgSar) { imgSar.src = data.sar_preview_b64; }
-      if (data.fusion_overlay_b64 && imgFused) { imgFused.src = data.fusion_overlay_b64; setCanvasLayer("fused"); }
+      canvasSource = "dual_upload";
+
+      if (data.optical_preview_b64 && imgT1) {
+        imgT1.src = data.optical_preview_b64;
+      }
+
+      if (data.sar_preview_b64 && imgSar) {
+        imgSar.src = data.sar_preview_b64;
+        canvasArtifacts.water = true;
+      }
+
+      if (data.fusion_overlay_b64 && imgFused) {
+        imgFused.src = data.fusion_overlay_b64;
+        canvasArtifacts.vegetation = true;
+        setCanvasLayer("fused");
+      }
+
+      syncCanvasControls();
+
     } else if (tt === "REGION_GROUNDING") {
-      if (data.annotated_image_b64 && imgT2) imgT2.src = data.annotated_image_b64;
+      if (data.annotated_image_b64 && imgT2) {
+        imgT2.src = data.annotated_image_b64;
+      }
+
+      // Grounding is still a single-image analysis result.
+      if (canvasSource === "single_upload") {
+        setCanvasLayer("single");
+      }
+
     } else if (data.preview_b64 && imgT1) {
       imgT1.src = data.preview_b64;
+
+      // Normal VQA/captioning must never expose stale comparison layers.
+      if (canvasSource === "single_upload") {
+        setCanvasLayer("single");
+      }
     }
   }
 
