@@ -1,5 +1,5 @@
-"""
-SatQuery AI — SAR-Optical Fusion Engine
+﻿"""
+SatQuery AI â€” SAR-Optical Fusion Engine
 =======================================
 
 Cross-modal analysis of SAR (Sentinel-1) and Optical (Sentinel-2)
@@ -76,14 +76,15 @@ except ImportError:
 from PIL import Image
 
 from .model_loader import get_model_loader
+from ..training.train_sar_fusion import SAROpticalModel
 
 
 logger = logging.getLogger(__name__)
 
 
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # SAR Encoder
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class SAREncoder(nn_Module):
     """
@@ -162,9 +163,9 @@ class SAREncoder(nn_Module):
         return x
 
 
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Cross-Attention Fusion Module
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class CrossAttentionFusion(nn_Module):
     """
@@ -272,9 +273,9 @@ class CrossAttentionFusion(nn_Module):
         return fused
 
 
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Full SAR-Optical Fusion Model
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class SAROpticalFusionModel(nn_Module):
     """
@@ -350,9 +351,9 @@ class SAROpticalFusionModel(nn_Module):
         )
 
 
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # SAR Fusion Engine
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class SARFusionEngine:
     """
@@ -392,187 +393,104 @@ class SARFusionEngine:
         self._checkpoint_path: Optional[str] = None
         self._checkpoint_load_error: Optional[str] = None
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # MODEL INITIALIZATION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _get_fusion_model(
-            self,
-        ) -> SAROpticalFusionModel:
-    
-            if self._fusion_model is None:
-            
-                self._fusion_model = (
-                    SAROpticalFusionModel(
-                        dim=256
-                    ).to(self._device)
-                )
-    
-                ckpt_paths = [
-                    checkpoint_path(
-                        "sar_optical_cross_attention_best.pth"
-                    ),
-                    model_path(
-                        "sar_optical_fusion.pth"
-                    ),
-                ]
-    
-                loaded = False
-    
-                for p in ckpt_paths:
-                
-                    if not os.path.exists(p):
-                        continue
-                    
-                    try:
-                    
-                        try:
-                            ckpt = torch.load(
-                                p,
-                                map_location=self._device,
-                                weights_only=False,
-                            )
-    
-                        except Exception:
-                        
-                            with open(
-                                p,
-                                "rb",
-                            ) as f:
-                                ckpt = pickle.load(f)
-    
-                        if isinstance(
-                            ckpt,
-                            dict,
-                        ):
-                            raw_sd = ckpt.get(
-                                "model_state_dict",
-                                ckpt.get(
-                                    "state_dict",
-                                    ckpt,
-                                ),
-                            )
-                        else:
-                            raw_sd = ckpt
-    
-                        if not isinstance(
-                            raw_sd,
-                            dict,
-                        ):
-                            raise ValueError(
-                                "Checkpoint does not contain "
-                                "a valid state dictionary."
-                            )
-    
-                        sd = {}
-    
-                        for k, v in raw_sd.items():
-                        
-                            if isinstance(
-                                v,
-                                np.ndarray,
-                            ):
-                                sd[k] = torch.from_numpy(v)
-    
-                            else:
-                                sd[k] = v
-    
-                        missing_keys, unexpected_keys = (
-                            self._fusion_model.load_state_dict(
-                                sd,
-                                strict=False,
-                            )
-                        )
-    
-                        # A partially loaded checkpoint must NOT be treated
-                        # as a scientifically valid trained checkpoint.
-                        if missing_keys or unexpected_keys:
-                            details = (
-                                f"missing_keys={list(missing_keys)}, "
-                                f"unexpected_keys={list(unexpected_keys)}"
-                            )
-    
-                            logger.error(
-                                "Rejected SAR-optical checkpoint %s: "
-                                "state-dict mismatch: %s",
-                                p,
-                                details,
-                            )
-    
-                            raise ValueError(
-                                "SAR-optical checkpoint rejected because "
-                                "the checkpoint does not exactly match the "
-                                f"current inference architecture: {details}"
-                            )
-    
-                        self._is_adapted_checkpoint = True
-                        self._checkpoint_path = p
-                        self._checkpoint_load_error = None
-                        loaded = True
-    
-                        logger.info(
-                            "Loaded verified SAR-optical fusion checkpoint: %s",
-                            p,
-                        )
-    
-                        break
-                    
-                        if missing_keys:
-                            logger.warning(
-                                "SAR-optical checkpoint loaded with "
-                                "missing keys: %s",
-                                missing_keys,
-                            )
-    
-                        if unexpected_keys:
-                            logger.warning(
-                                "SAR-optical checkpoint loaded with "
-                                "unexpected keys: %s",
-                                unexpected_keys,
-                            )
-    
-                        self._is_adapted_checkpoint = True
-                        self._checkpoint_path = p
-                        self._checkpoint_load_error = None
-                        loaded = True
-            
-                        logger.info(
-                            "Loaded SAR-optical fusion checkpoint: %s",
-                            p,
-                        )
-    
-                        break
-                    
-                    except Exception as e:
-                    
-                        self._checkpoint_load_error = str(e)
-    
-                        logger.warning(
-                            "Error loading SAR-optical checkpoint "
-                            "from %s: %s",
-                            p,
-                            e,
-                        )
-    
-                if not loaded:
-                
-                    self._is_adapted_checkpoint = False
-                    self._checkpoint_path = None
-    
-                    logger.warning(
-                        "SAR-optical fusion checkpoint was not loaded. "
-                        "The configured fusion architecture remains "
-                        "available, but its weights are not verified "
-                        "as a trained SAR-optical checkpoint."
-                    )
-    
-                self._fusion_model.eval()
-    
+        self,
+    ):
+        if self._fusion_model is not None:
             return self._fusion_model
 
-    # ──────────────────────────────────────────────────────────
-    # MAIN EXECUTION
-    # ──────────────────────────────────────────────────────────
+        # Use the exact architecture that produced the verified
+        # complete SAR-optical checkpoint.
+        self._fusion_model = SAROpticalModel(
+            feat_dim=256
+        ).to(self._device)
+
+        candidate_paths = [
+            checkpoint_path(
+                "sar_fusion_retrain_test\sar_optical_cross_attention_best.pth"
+            ),
+            checkpoint_path(
+                "sar_optical_cross_attention_best.pth"
+            ),
+            model_path(
+                "sar_optical_fusion.pth"
+            ),
+        ]
+
+        for pth in candidate_paths:
+            if not os.path.exists(pth):
+                continue
+
+            try:
+                try:
+                    ckpt = torch.load(
+                        pth,
+                        map_location=self._device,
+                        weights_only=False,
+                    )
+                except Exception:
+                    with open(pth, "rb") as f:
+                        ckpt = pickle.load(f)
+
+                if isinstance(ckpt, dict):
+                    state_dict = ckpt.get(
+                        "model_state_dict",
+                        ckpt.get("state_dict", ckpt),
+                    )
+                else:
+                    state_dict = ckpt
+
+                if not isinstance(state_dict, dict):
+                    raise ValueError(
+                        "Checkpoint does not contain a valid state dictionary."
+                    )
+
+                converted = {}
+                for key, value in state_dict.items():
+                    if isinstance(value, np.ndarray):
+                        converted[key] = torch.from_numpy(value)
+                    else:
+                        converted[key] = value
+
+                # Scientific gate: require an exact architecture match.
+                missing, unexpected = self._fusion_model.load_state_dict(
+                    converted,
+                    strict=False,
+                )
+
+                if missing or unexpected:
+                    raise ValueError(
+                        "SAR-optical checkpoint rejected because it does not "
+                        "exactly match SAROpticalModel: "
+                        f"missing_keys={list(missing)}, "
+                        f"unexpected_keys={list(unexpected)}"
+                    )
+
+                self._fusion_model.eval()
+                self._is_adapted_checkpoint = True
+                self._checkpoint_path = pth
+                self._checkpoint_load_error = None
+
+                logger.info(
+                    "Loaded exact SAR-optical checkpoint: %s",
+                    pth,
+                )
+
+                return self._fusion_model
+
+            except Exception as exc:
+                self._checkpoint_load_error = str(exc)
+                logger.warning(
+                    "SAR-optical checkpoint rejected: %s",
+                    exc,
+                )
+
+        self._fusion_model = None
+        return None
 
     def run(
         self,
@@ -610,9 +528,9 @@ class SARFusionEngine:
             )
         )
 
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Physical SAR statistics
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         vv = (
             sar_array[0]
@@ -728,9 +646,9 @@ class SARFusionEngine:
             1,
         )
 
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Model execution
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         confidence = 0.0
 
@@ -781,17 +699,17 @@ class SARFusionEngine:
                         sar_feat,
                         opt_feat,
                         fused_feat,
+                        fusion_similarity,
                     ) = model(
                         sar_tensor,
-                        opt_features,
+                        optical_tensor,
                     )
 
-                fusion_overlay_b64 = (
-                    self._visualize_attention(
-                        fused_feat,
-                        optical_array,
-                    )
-                )
+                # The verified SAROpticalModel returns global feature vectors,
+                # not a spatial activation map. Do not fabricate a heatmap.
+                # Preserve the real optical preview as the overlay until a
+                # spatially-aware fusion visualization is implemented.
+                fusion_overlay_b64 = optical_preview_b64
 
                 fusion_stats = (
                     self._compute_fusion_stats(
@@ -829,9 +747,9 @@ class SARFusionEngine:
 
             confidence = 0.0
 
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Inject actual SAR statistics
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         fusion_stats[
             "sar_vv_hist"
@@ -873,9 +791,9 @@ class SARFusionEngine:
             "vegetation_coverage_pct"
         ] = veg_volume
 
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Dominant scattering interpretation
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         if water_fraction > 20.0:
 
@@ -902,9 +820,9 @@ class SARFusionEngine:
             "dominant_scattering"
         ] = dominant
 
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Checkpoint metadata
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         is_adapted = getattr(
             self,
@@ -965,9 +883,9 @@ class SARFusionEngine:
                 "(Checkpoint Not Verified)"
             )
 
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Independent modality findings
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         optical_findings = (
             self._analyze_optical(
@@ -1013,9 +931,9 @@ class SARFusionEngine:
             )
         )
 
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Final response
-        # ──────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         return {
             "optical_preview_b64": (
@@ -1068,9 +986,9 @@ class SARFusionEngine:
             ),
         }
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # OPTICAL FEATURE EXTRACTION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _extract_optical_features(
         self,
@@ -1202,9 +1120,9 @@ class SARFusionEngine:
             # Do not fabricate a random feature vector or confidence.
             raise
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # OPTICAL ANALYSIS
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _analyze_optical(
         self,
@@ -1285,9 +1203,9 @@ class SARFusionEngine:
             f"and are not independently validated land-cover labels."
         )
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # SAR ANALYSIS
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _analyze_sar(
         self,
@@ -1331,9 +1249,9 @@ class SARFusionEngine:
             f"not independently verified semantic classifications."
         )
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # FUSED INTERPRETATION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _analyze_fused(
         self,
@@ -1377,9 +1295,9 @@ class SARFusionEngine:
             "evaluation/calibration dataset."
         )
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # VISUALIZATION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _visualize_attention(
         self,
@@ -1512,9 +1430,9 @@ class SARFusionEngine:
             )
         )
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # SAR PREVIEW
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _make_sar_preview_b64(
         self,
@@ -1568,9 +1486,9 @@ class SARFusionEngine:
             )
         )
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # FEATURE STATISTICS
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _compute_fusion_stats(
         self,
@@ -1693,9 +1611,9 @@ class SARFusionEngine:
                 "agreement_error": str(e),
             }
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # TENSOR PREPARATION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _prepare_optical_tensor(
         self,
@@ -1781,9 +1699,9 @@ class SARFusionEngine:
             .to(self._device)
         )
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # IMAGE CONVERSION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _array_to_pil(
         self,
@@ -1876,9 +1794,9 @@ class SARFusionEngine:
         )
 
 
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Module-level singleton
-# ──────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _sar_engine: Optional[
     SARFusionEngine
@@ -1898,3 +1816,9 @@ def get_sar_engine() -> SARFusionEngine:
 
 # Backward-compatible alias
 get_sar_fusion_engine = get_sar_engine
+
+
+
+
+
+

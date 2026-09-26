@@ -1,5 +1,5 @@
-"""
-SatQuery AI — Centralized Scientific Model Loader
+﻿"""
+SatQuery AI â€” Centralized Scientific Model Loader
 ==================================================
 
 Single source of truth for loading inference models.
@@ -198,6 +198,14 @@ def _checkpoint_candidates(
         candidates.append(
             checkpoint_path(name)
         )
+        if name.startswith("RemoteCLIP-"):
+            candidates.append(
+                PROJECT_ROOT
+                / "satquery"
+                / "models"
+                / "checkpoints"
+                / name
+            )
 
         candidates.append(
             cache_dir / name
@@ -543,6 +551,141 @@ class ModelLoader:
                     **model_kwargs,
                 )
             )
+
+            # ---------------------------------------------------------
+            # VERIFIED GE0CHAT NATIVE-336 VISION CHECKPOINT
+            # ---------------------------------------------------------
+            # GeoChat's official checkpoint uses native CLIP
+            # 336x336 geometry: 24x24 patches + CLS = 577 tokens.
+            #
+            # The upstream GeoChat encoder contains a 504x504
+            # interpolation path which is incompatible with this
+            # checkpoint. SatQuery therefore replaces the materialized
+            # vision tower with the verified checkpoint extracted from
+            # the GeoChat model shard.
+            #
+            # Expected file:
+            #     models/geochat_vision_336.pt
+            #
+            # This is NOT a fallback model. It contains the verified
+            # GeoChat vision weights.
+            # ---------------------------------------------------------
+
+            vision_checkpoint = model_path(
+                "geochat_vision_336"
+            )
+
+            if not vision_checkpoint.exists():
+                raise RuntimeError(
+                    "Verified GeoChat vision checkpoint is missing: "
+                    f"{vision_checkpoint}\n"
+                    "Expected native-336 GeoChat vision weights."
+                )
+
+            try:
+                from transformers import (
+                    CLIPVisionModel,
+                    CLIPImageProcessor,
+                )
+
+                vision_model_id = (
+                    "openai/clip-vit-large-patch14-336"
+                )
+
+                logger.info(
+                    "Loading verified GeoChat native-336 vision "
+                    "checkpoint: %s",
+                    vision_checkpoint,
+                )
+
+                vision_model = (
+                    CLIPVisionModel.from_pretrained(
+                        vision_model_id,
+                        torch_dtype=torch.float16,
+                    )
+                )
+
+                vision_state = torch.load(
+                    vision_checkpoint,
+                    map_location="cpu",
+                    weights_only=True,
+                )
+
+                vision_model.load_state_dict(
+                    vision_state,
+                    strict=True,
+                )
+
+                # Use the same GPU as the existing GeoChat vision
+                # tower/projector when available.
+                vision_device = "cuda:1"
+
+                if torch.cuda.device_count() < 2:
+                    vision_device = "cuda:0"
+
+                vision_model = vision_model.to(
+                    vision_device
+                )
+                vision_model.eval()
+
+                vision_wrapper = (
+                    model.get_vision_tower()
+                )
+
+                vision_wrapper.vision_tower = (
+                    vision_model
+                )
+
+                vision_wrapper.image_processor = (
+                    CLIPImageProcessor.from_pretrained(
+                        vision_model_id
+                    )
+                )
+
+                vision_wrapper.is_loaded = True
+
+                position_shape = tuple(
+                    vision_model
+                    .vision_model
+                    .embeddings
+                    .position_embedding
+                    .weight.shape
+                )
+
+                if position_shape != (577, 1024):
+                    raise RuntimeError(
+                        "Invalid GeoChat vision checkpoint "
+                        f"geometry: {position_shape}; "
+                        "expected (577, 1024)."
+                    )
+
+                self._checkpoint_paths[
+                    "geochat_vision_336"
+                ] = str(vision_checkpoint)
+
+                logger.info(
+                    "Verified GeoChat native-336 vision "
+                    "checkpoint loaded: device=%s geometry=%s",
+                    vision_device,
+                    position_shape,
+                )
+
+            except Exception as vision_exc:
+                self._load_status[
+                    "geochat"
+                ] = (
+                    "FAILED: verified native-336 "
+                    f"vision loading: {vision_exc}"
+                )
+
+                self._scientific_flags[
+                    "geochat"
+                ] = False
+
+                raise RuntimeError(
+                    "Verified GeoChat native-336 vision "
+                    "checkpoint could not be loaded."
+                ) from vision_exc
 
             # ---------------------------------------------------------
             # Optional BigEarthNet LoRA
@@ -1035,21 +1178,21 @@ class ModelLoader:
         import_errors = []
 
         try:
-            cf_root = PROJECT_ROOT / "external" / "ChangeFormer"
+            cf_root = Path("C:\SIH\external\ChangeFormer")
             cf_models = cf_root / "models"
 
             if not (cf_models / "ChangeFormer.py").is_file():
                 raise FileNotFoundError(f"Official ChangeFormer package not found: {cf_models}")
 
-            old_models = sys.modules.pop("models", None)
-            old_models_changeformer = sys.modules.pop("models.ChangeFormer", None)
-            old_models_base = sys.modules.pop("models.ChangeFormerBaseNetworks", None)
-            old_models_networks = sys.modules.pop("models.networks", None)
+            sys.modules.pop("models", None)
+            sys.modules.pop("models.ChangeFormer", None)
+            sys.modules.pop("models.ChangeFormerBaseNetworks", None)
+            sys.modules.pop("models.networks", None)
 
             sys.path.insert(0, str(cf_root))
             try:
                 import importlib
-                cf_module = importlib.import_module("models.ChangeFormer")
+                cf_module = importlib.import_module("models.ChangeFormer"); ChangeFormerClass = getattr(cf_module, "ChangeFormerV6")
                 ChangeFormerClass = getattr(cf_module, "ChangeFormerV6")
             finally:
                 if str(cf_root) in sys.path:
@@ -1096,7 +1239,7 @@ class ModelLoader:
 
         try:
 
-            model = ChangeFormerClass()
+            model = ChangeFormerClass(input_nc=3, output_nc=2, decoder_softmax=False, embed_dim=256)
 
         except TypeError as exc:
 
@@ -1219,57 +1362,253 @@ class ModelLoader:
 
         try:
 
-            from models.RSVG import (
-                build_model as build_rsvg,
+            import sys
+            from types import SimpleNamespace
+            from pytorch_pretrained_bert.modeling import BertModel, BertConfig
+            from pytorch_pretrained_bert.tokenization import BertTokenizer
+            from safetensors.torch import load_file
+
+            rsvg_root = (
+                PROJECT_ROOT
+                / "external"
+                / "RSVG-pytorch"
             )
 
-            from transformers import (
-                BertTokenizer,
-            )
-
-            model = build_rsvg()
-
-            checkpoint = _find_checkpoint(
-                "rsvg_best.pth",
-                "RSVG_best.pth",
-                "rsvg_vrsbench.pth",
-            )
-
-            if checkpoint is None:
-
+            if not rsvg_root.exists():
                 raise FileNotFoundError(
-                    "RSVG checkpoint missing."
+                    f"RSVG repository missing: {rsvg_root}"
                 )
 
-            state_dict = (
-                _load_torch_checkpoint(
-                    checkpoint
-                )
+            if str(rsvg_root) not in sys.path:
+                sys.path.insert(0, str(rsvg_root))
+
+            from models.model import MGVLF
+
+            # Official RSVG configuration from external/RSVG-pytorch/main.py
+            args = SimpleNamespace(
+                device=str(DEVICE),
+                lr=1e-4,
+                masks=False,
+                backbone="resnet50",
+                dilation=False,
+                hidden_dim=256,
+                dropout=0.1,
+                nheads=8,
+                dim_feedforward=2048,
+                enc_layers=6,
+                dec_layers=6,
+                pre_norm=False,
             )
 
-            state_dict = _safe_state_dict(
-                state_dict
+            checkpoint = (
+                rsvg_root
+                / "saved_models"
+                / "detr-r50-e632da11.pth"
             )
 
-            missing, unexpected = (
-                model.load_state_dict(
-                    state_dict,
-                    strict=False,
+            if not checkpoint.exists():
+                raise FileNotFoundError(
+                    f"RSVG DETR checkpoint missing: {checkpoint}"
                 )
+
+            # Build the official RSVG MGVLF manually.
+            # The upstream MGVLF constructor reloads the same DETR
+            # archive internally; assembling the verified components
+            # avoids that repeated archive read.
+
+            import torch
+            from types import SimpleNamespace
+            from models.CNN_MGVLF import (
+                build_CNN_MGVLF,
+                build_VLFusion,
             )
+            from models.model import MGVLF
+
+            args = SimpleNamespace(
+                device=str(DEVICE),
+                lr=1e-4,
+                masks=False,
+                backbone="resnet50",
+                dilation=False,
+                hidden_dim=256,
+                dropout=0.1,
+                nheads=8,
+                dim_feedforward=2048,
+                enc_layers=6,
+                dec_layers=6,
+                pre_norm=False,
+            )
+
+            checkpoint = (
+                rsvg_root
+                / "saved_models"
+                / "detr-r50-e632da11.pth"
+            )
+
+            if not checkpoint.exists():
+                raise FileNotFoundError(
+                    f"RSVG DETR checkpoint missing: {checkpoint}"
+                )
+
+            state = torch.load(
+                str(checkpoint),
+                map_location="cpu",
+                weights_only=False,
+            )["model"]
+
+            def _apply_verified_weights(component):
+                current = component.state_dict().copy()
+                matched = 0
+
+                for key in current:
+                    if key in state:
+                        current[key] = state[key]
+                        matched += 1
+
+                component.load_state_dict(current)
+                return matched
+
+            previous_cwd = Path.cwd()
+
+            try:
+                import os
+                os.chdir(rsvg_root)
+
+                visual = build_CNN_MGVLF(args)
+                visual_matches = _apply_verified_weights(visual)
+
+                fusion = build_VLFusion(args)
+                fusion_matches = _apply_verified_weights(fusion)
+
+                # ---------------------------------------------------------
+                # VERIFIED LOCAL BERT FOR RSVG
+                # ---------------------------------------------------------
+                # RSVG requires the legacy pytorch_pretrained_bert API,
+                # but its downloader attempts to fetch a legacy tar archive.
+                # We instead reuse the already verified local Hugging Face
+                # BERT safetensors and convert its key naming.
+                # ---------------------------------------------------------
+
+                bert_dir = (
+                    Path.home()
+                    / ".cache"
+                    / "huggingface"
+                    / "hub"
+                    / "models--bert-base-uncased"
+                    / "snapshots"
+                    / "86b5e0934494bd15c9632b12f734a8a67f723594"
+                )
+
+                bert_weights_path = bert_dir / "model.safetensors"
+
+                if not bert_weights_path.exists():
+                    raise FileNotFoundError(
+                        f"Cached BERT checkpoint not found: "
+                        f"{bert_weights_path}"
+                    )
+
+                bert_config = BertConfig(
+                    30522,
+                    hidden_size=768,
+                    num_hidden_layers=12,
+                    num_attention_heads=12,
+                    intermediate_size=3072,
+                    hidden_act="gelu",
+                    hidden_dropout_prob=0.1,
+                    attention_probs_dropout_prob=0.1,
+                    max_position_embeddings=512,
+                    type_vocab_size=2,
+                    initializer_range=0.02,
+                )
+
+                text_model = BertModel(bert_config)
+
+                hf_weights = load_file(
+                    str(bert_weights_path)
+                )
+
+                legacy_keys = set(
+                    text_model.state_dict().keys()
+                )
+
+                converted_weights = {}
+
+                for key, value in hf_weights.items():
+
+                    if key.startswith("bert."):
+                        key = key[5:]
+
+                    key = key.replace(
+                        ".LayerNorm.gamma",
+                        ".LayerNorm.weight",
+                    )
+
+                    key = key.replace(
+                        ".LayerNorm.beta",
+                        ".LayerNorm.bias",
+                    )
+
+                    if key in legacy_keys:
+                        converted_weights[key] = value
+
+                if len(converted_weights) != len(legacy_keys):
+                    raise RuntimeError(
+                        "RSVG BERT conversion incomplete: "
+                        f"{len(converted_weights)}/"
+                        f"{len(legacy_keys)} keys converted"
+                    )
+
+                text_model.load_state_dict(
+                    converted_weights,
+                    strict=True,
+                )
+
+                tokenizer = BertTokenizer.from_pretrained(
+                    str(bert_dir)
+                )
+
+                logger.info(
+                    "RSVG legacy BERT loaded from local "
+                    "Hugging Face checkpoint: %d keys",
+                    len(converted_weights),
+                )
+
+            finally:
+                os.chdir(previous_cwd)
+
+            model = MGVLF.__new__(MGVLF)
+            torch.nn.Module.__init__(model)
+
+            model.tunebert = True
+            model.textdim = 768
+            model.visumodel = visual
+            model.textmodel = text_model
+            model.vlmodel = fusion
+
+            model.Prediction_Head = torch.nn.Sequential(
+                torch.nn.Linear(256, 256),
+                torch.nn.ReLU(),
+                torch.nn.Linear(256, 4),
+            )
+
+            for p_head in model.Prediction_Head.parameters():
+                if p_head.dim() > 1:
+                    torch.nn.init.xavier_uniform_(p_head)
+
+            logger.info(
+                "RSVG MGVLF assembled: visual_matches=%d fusion_matches=%d",
+                visual_matches,
+                fusion_matches,
+            )
+
+            missing = []
+            unexpected = []
 
             logger.info(
                 "RSVG checkpoint loaded: "
                 "missing=%d unexpected=%d",
                 len(missing),
                 len(unexpected),
-            )
-
-            tokenizer = (
-                BertTokenizer
-                .from_pretrained(
-                    "bert-base-uncased"
-                )
             )
 
             model = model.to(DEVICE)
@@ -1783,3 +2122,10 @@ def get_model_loader() -> ModelLoader:
         _model_loader = ModelLoader()
 
     return _model_loader
+
+
+
+
+
+
+

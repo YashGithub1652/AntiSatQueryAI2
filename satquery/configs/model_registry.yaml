@@ -1,4 +1,4 @@
-models:
+﻿models:
 
   geochat:
     name: GeoChat-7B
@@ -45,3 +45,39 @@ models:
     role: segmentation
     capabilities:
       - segmentation
+
+
+task_routing:
+
+  SINGLE_VQA:
+    models:
+      - geochat
+      - remoteclip
+    description: "Single-image remote sensing VQA"
+
+  CAPTIONING:
+    models:
+      - geochat
+      - remoteclip
+    description: "Remote sensing scene captioning"
+
+  REGION_GROUNDING:
+    models:
+      - rsvg
+      - sam
+    description: "Text-guided remote sensing grounding followed by segmentation"
+
+  BI_TEMPORAL_CHANGE:
+    models:
+      - changeformer
+    description: "Bi-temporal remote sensing change detection"
+
+  CROSS_MODAL_SAR_OPTICAL:
+    models:
+      - sar_fusion
+      - remoteclip
+    description: "Cross-modal SAR and optical analysis"
+
+  CLARIFICATION_NEEDED:
+    models: []
+    description: "User clarification required before model execution"

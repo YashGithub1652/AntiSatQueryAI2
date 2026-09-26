@@ -1,4 +1,4 @@
-"""
+﻿"""
 SatQuery AI — Real Agentic Controller
 ========================================
 LangGraph-based 8-node state machine that orchestrates all ML models.
@@ -75,6 +75,7 @@ class AgentState(TypedDict, total=False):
     validation: Dict[str, Any]       # output of Node 2
     coregistration: Dict[str, Any]   # output of Node 3 (pairs only)
     task_type: str                   # output of Node 4
+    input_structure: Dict[str, Any]   # normalized single/dual/temporal/modal structure
     routed_models: List[str]         # output of Node 5
     raw_outputs: Dict[str, Any]      # output of Node 6
     final_result: Dict[str, Any]     # output of Node 7
@@ -267,24 +268,49 @@ def node_check_coregistration(state: AgentState) -> AgentState:
     meta1 = images[0].get("metadata", {})
     meta2 = images[1].get("metadata", {})
 
-    query_lower = state["query"].lower()
+    # Phase 2B: derive registration context from actual uploaded
+    # input structure, not from query keywords.
+    input_structure = state.get("input_structure", {})
+    structure = input_structure.get("structure", "")
 
-    is_sar_optical = any(
-        term in query_lower
-        for term in [
-            "sar",
-            "radar",
-            "vv",
-            "vh",
-            "sentinel-1",
-        ]
-    )
+    if structure == "CROSS_MODAL_CANDIDATE":
+        task_context = "sar_optical"
+    elif structure in ("BI_TEMPORAL_CANDIDATE", "DUAL_SAR"):
+        task_context = "bitemporal"
+    else:
+        task_context = "generic"
 
-    task_context = (
-        "sar_optical"
-        if is_sar_optical
-        else "bitemporal"
-    )
+    # Phase 2B: unsupported dual-image structures must not enter
+    # scientific co-registration workflows.
+    if structure not in (
+        "CROSS_MODAL_CANDIDATE",
+        "BI_TEMPORAL_CANDIDATE",
+        "DUAL_SAR",
+    ):
+        result = {
+            "skipped": True,
+            "scientific_gate": "BLOCKED",
+            "registration_quality": 0.0,
+            "warnings": [],
+            "errors": [
+                f"Unsupported multi-image structure for scientific registration: {structure or 'UNKNOWN'}"
+            ],
+            "recommendation": (
+                "Provide a supported bi-temporal or optical-SAR image pair."
+            ),
+        }
+
+        state["coregistration"] = result
+
+        _log_trace(
+            state,
+            node_name,
+            "blocked",
+            result["recommendation"],
+            time.time() - t0,
+        )
+
+        return state
 
     compatibility = checker.check(
         meta1,
@@ -367,6 +393,10 @@ def node_check_coregistration(state: AgentState) -> AgentState:
 
     return state
 def node_classify_task(state: AgentState) -> AgentState:
+    # Phase 2A: Normalize actual uploaded input structure
+    input_structure = _classify_input_structure(state)
+    state['input_structure'] = input_structure
+
     """
     Node 4: Classify the task type from query intent + image config.
     This is the routing decision that determines which ML models run.
@@ -397,40 +427,64 @@ def node_classify_task(state: AgentState) -> AgentState:
             task_type = mapped
             parse["override_reason"] = f"Explicitly requested mode: {task_type}"
 
-    # Override based on image configuration
+
+
+    # Phase 2A: Metadata-driven input-structure routing
+    input_structure = state.get("input_structure", {})
+    structure = input_structure.get("structure", "NO_INPUT")
+    is_temporal_pair = input_structure.get("is_temporal_pair", False)
+    is_cross_modal = input_structure.get("is_cross_modal", False)
+
     if n_images == 2:
-        modalities = [img.get("modality", "optical") for img in images]
-        has_sar = "sar" in modalities
-        has_optical = "optical" in modalities or "rgb" in modalities
+        if structure == "CROSS_MODAL_CANDIDATE" and is_cross_modal:
+            task_type = "CROSS_MODAL_SAR_OPTICAL"
+            parse["override_reason"] = (
+                "Two-image metadata identifies an Optical + SAR pair. "
+                "Routing to CROSS_MODAL_SAR_OPTICAL."
+            )
 
-        # If one SAR + one optical → force fusion task (regardless of query)
-        if has_sar and has_optical:
-            if task_type not in ("CROSS_MODAL_SAR_OPTICAL",):
-                task_type = "CROSS_MODAL_SAR_OPTICAL"
-                parse["override_reason"] = (
-                    "Two images: one SAR + one Optical detected. "
-                    "Routing to CROSS_MODAL_SAR_OPTICAL."
-                )
-
-        # Two optical images → change detection
-        elif has_optical and not has_sar:
+        elif structure == "BI_TEMPORAL_CANDIDATE":
             query_lower = state["query"].lower()
             temporal_signals = any(k in query_lower for k in [
-                "submerg", "flood", "inundat", "damag", "loss", "growth", "expans",
-                "chang", "differ", "before", "after", "between", "t1", "t2", "percent"
+                "submerg", "flood", "inundat", "damag", "loss", "growth",
+                "expans", "chang", "differ", "before", "after", "between",
+                "t1", "t2", "percent", "temporal", "over time", "compare"
             ])
-            if temporal_signals or task_type in ("SINGLE_VQA", "UNKNOWN", "CAPTIONING"):
+
+            if is_temporal_pair or temporal_signals:
                 task_type = "BI_TEMPORAL_CHANGE"
                 parse["override_reason"] = (
-                    "Two optical images with temporal / flood context — "
-                    "routing to BI_TEMPORAL_CHANGE."
+                    "Two Optical images identified as a temporal/change pair. "
+                    "Routing to BI_TEMPORAL_CHANGE."
+                )
+            elif task_type in ("UNKNOWN", "SINGLE_VQA", "CAPTIONING"):
+                task_type = "CLARIFICATION_NEEDED"
+                parse["override_reason"] = (
+                    "Two Optical images detected without sufficient temporal "
+                    "evidence. Clarification required."
                 )
 
-    # Ambiguous query + two non-SAR images → clarification
-    if (task_type == "UNKNOWN" or task_type == "CLARIFICATION_NEEDED") and n_images > 1:
-        modalities = [img.get("modality") for img in images]
-        if "sar" not in modalities:
-            task_type = "CLARIFICATION_NEEDED"
+        elif structure == "DUAL_SAR":
+            if is_temporal_pair:
+                task_type = "BI_TEMPORAL_CHANGE"
+                parse["override_reason"] = (
+                    "Two SAR images have distinct acquisition dates. "
+                    "Routing to BI_TEMPORAL_CHANGE."
+                )
+            else:
+                task_type = "CLARIFICATION_NEEDED"
+                parse["override_reason"] = (
+                    "Two SAR images detected without a confirmed temporal "
+                    "relationship. Clarification required."
+                )
+    # Phase 2A: Unsupported multi-image inputs require clarification
+    if structure == "MULTI_IMAGE":
+        task_type = "CLARIFICATION_NEEDED"
+        parse["override_reason"] = (
+            f"{n_images} images supplied, but the current pipeline supports " 
+            "single-image, bi-temporal, and cross-modal pair workflows only. " 
+            "Clarification required."
+        )
 
     # Single-image execution invariant:
     # comparison/fusion tasks require two images.
@@ -461,6 +515,253 @@ def node_classify_task(state: AgentState) -> AgentState:
     state["task_type"] = task_type
     return state
 
+def _classify_input_structure(state: AgentState) -> Dict[str, Any]:
+    """
+    Normalize the uploaded image set into an explicit input structure.
+
+    This classification is based on ACTUAL image metadata, not query keywords.
+
+    Output:
+        image_count
+        structure
+        relationship
+        modalities
+        sensors
+        acquisition_dates
+        is_temporal_pair
+        is_cross_modal
+        temporal_order
+    """
+    images = state.get("images", [])
+
+    image_count = len(images)
+
+    if image_count == 0:
+        return {
+            "image_count": 0,
+            "structure": "NO_INPUT",
+            "relationship": "none",
+            "modalities": [],
+            "sensors": [],
+            "acquisition_dates": [],
+            "is_temporal_pair": False,
+            "is_cross_modal": False,
+            "temporal_order": None,
+        }
+
+    modalities = []
+    sensors = []
+    acquisition_dates = []
+
+    for img in images:
+        metadata = img.get("metadata", {}) or {}
+
+        modality = (
+            img.get("modality")
+            or metadata.get("modality")
+            or "unknown"
+        )
+
+        sensor = (
+            img.get("sensor")
+            or metadata.get("sensor")
+            or "unknown"
+        )
+
+        acquisition_date = metadata.get("acquisition_date")
+
+        modalities.append(str(modality).lower())
+        sensors.append(str(sensor).lower())
+        acquisition_dates.append(acquisition_date)
+
+    # Normalize common modality names.
+    normalized_modalities = []
+
+    for modality in modalities:
+        if modality in ("optical/ms", "optical", "multispectral", "msi"):
+            normalized_modalities.append("optical")
+        elif modality in ("sar", "radar"):
+            normalized_modalities.append("sar")
+        elif modality in ("rgb", "visual"):
+            normalized_modalities.append("rgb")
+        else:
+            normalized_modalities.append(modality)
+
+    # ------------------------------------------------------------
+    # SINGLE IMAGE
+    # ------------------------------------------------------------
+    if image_count == 1:
+        modality = normalized_modalities[0]
+
+        if modality == "sar":
+            structure = "SINGLE_SAR"
+        elif modality == "optical":
+            structure = "SINGLE_OPTICAL"
+        elif modality == "rgb":
+            structure = "SINGLE_RGB"
+        else:
+            structure = "SINGLE_UNKNOWN"
+
+        return {
+            "image_count": 1,
+            "structure": structure,
+            "relationship": "single",
+            "modalities": normalized_modalities,
+            "sensors": sensors,
+            "acquisition_dates": acquisition_dates,
+            "is_temporal_pair": False,
+            "is_cross_modal": False,
+            "temporal_order": None,
+        }
+
+    # ------------------------------------------------------------
+    # TWO IMAGE INPUT
+    # ------------------------------------------------------------
+    if image_count == 2:
+        m1, m2 = normalized_modalities
+
+        has_sar = "sar" in (m1, m2)
+        has_optical = "optical" in (m1, m2)
+        same_modality = m1 == m2
+
+        is_cross_modal = has_sar and has_optical
+
+        # Attempt to establish temporal ordering from actual metadata.
+        temporal_order = None
+        is_temporal_pair = False
+
+        d1 = acquisition_dates[0]
+        d2 = acquisition_dates[1]
+
+        if d1 and d2:
+            try:
+                from datetime import datetime
+
+                def _parse_date(value):
+                    if isinstance(value, datetime):
+                        return value
+
+                    value = str(value).strip()
+
+                    # Handle ISO timestamps and plain dates.
+                    return datetime.fromisoformat(
+                        value.replace("Z", "+00:00")
+                    )
+
+                parsed_1 = _parse_date(d1)
+                parsed_2 = _parse_date(d2)
+
+                if parsed_1 < parsed_2:
+                    temporal_order = {
+                        "earlier_index": 0,
+                        "later_index": 1,
+                        "earlier_date": str(d1),
+                        "later_date": str(d2),
+                    }
+                    is_temporal_pair = True
+
+                elif parsed_2 < parsed_1:
+                    temporal_order = {
+                        "earlier_index": 1,
+                        "later_index": 0,
+                        "earlier_date": str(d2),
+                        "later_date": str(d1),
+                    }
+                    is_temporal_pair = True
+
+                else:
+                    temporal_order = {
+                        "earlier_index": None,
+                        "later_index": None,
+                        "same_date": True,
+                        "date": str(d1),
+                    }
+
+            except (ValueError, TypeError, OverflowError):
+                # Keep the structure valid even when metadata dates
+                # cannot be parsed.
+                temporal_order = None
+
+        # Optical + Optical
+        if same_modality and m1 == "optical":
+            structure = "BI_TEMPORAL_CANDIDATE"
+
+            return {
+                "image_count": 2,
+                "structure": structure,
+                "relationship": "bi_temporal_candidate",
+                "modalities": normalized_modalities,
+                "sensors": sensors,
+                "acquisition_dates": acquisition_dates,
+                "is_temporal_pair": is_temporal_pair,
+                "is_cross_modal": False,
+                "temporal_order": temporal_order,
+            }
+
+        # SAR + SAR
+        if same_modality and m1 == "sar":
+            structure = "DUAL_SAR"
+
+            return {
+                "image_count": 2,
+                "structure": structure,
+                "relationship": (
+                    "bi_temporal_candidate"
+                    if is_temporal_pair
+                    else "dual_modal_same_type"
+                ),
+                "modalities": normalized_modalities,
+                "sensors": sensors,
+                "acquisition_dates": acquisition_dates,
+                "is_temporal_pair": is_temporal_pair,
+                "is_cross_modal": False,
+                "temporal_order": temporal_order,
+            }
+
+        # Optical + SAR
+        if is_cross_modal:
+            return {
+                "image_count": 2,
+                "structure": "CROSS_MODAL_CANDIDATE",
+                "relationship": "cross_modal",
+                "modalities": normalized_modalities,
+                "sensors": sensors,
+                "acquisition_dates": acquisition_dates,
+                "is_temporal_pair": is_temporal_pair,
+                "is_cross_modal": True,
+                "temporal_order": temporal_order,
+            }
+
+        # Any other two-image combination.
+        return {
+            "image_count": 2,
+            "structure": "DUAL_UNKNOWN",
+            "relationship": "dual",
+            "modalities": normalized_modalities,
+            "sensors": sensors,
+            "acquisition_dates": acquisition_dates,
+            "is_temporal_pair": is_temporal_pair,
+            "is_cross_modal": is_cross_modal,
+            "temporal_order": temporal_order,
+        }
+
+    # ------------------------------------------------------------
+    # MORE THAN TWO IMAGES
+    # ------------------------------------------------------------
+    return {
+        "image_count": image_count,
+        "structure": "MULTI_IMAGE",
+        "relationship": "multi",
+        "modalities": normalized_modalities,
+        "sensors": sensors,
+        "acquisition_dates": acquisition_dates,
+        "is_temporal_pair": False,
+        "is_cross_modal": (
+            "sar" in normalized_modalities
+            and "optical" in normalized_modalities
+        ),
+        "temporal_order": None,
+    }
 
 def node_route_models(state: AgentState) -> AgentState:
     """
@@ -506,6 +807,22 @@ def node_execute_pipeline(state: AgentState) -> AgentState:
     _log_node_start(state, node_name, f"Executing {task_type} pipeline")
 
     raw_outputs = {}
+
+    # Scientific execution gate: block specialist inference when
+    # Node 3 explicitly rejects the multi-image input structure.
+    coreg = state.get("coregistration", {})
+    if len(images) >= 2 and coreg.get("scientific_gate") == "BLOCKED":
+        raw_outputs = {
+            "error": "Scientific execution blocked by co-registration validation.",
+            "answer": coreg.get("recommendation") or "Provide a supported bi-temporal or optical-SAR image pair.",
+            "confidence": 0.0,
+            "scientific_gate": "BLOCKED",
+            "coregistration": coreg,
+        }
+        _log_node_done(state, node_name, raw_outputs, time.time() - t0)
+        state["raw_outputs"] = raw_outputs
+        return state
+
 
     try:
         if task_type == "CLARIFICATION_NEEDED":
@@ -751,6 +1068,41 @@ def node_aggregate_outputs(state: AgentState) -> AgentState:
             "spectral_context": raw.get("spectral_context", ""),
             "preview_b64": images[0].get("rgb_b64") if images else None,
         })
+
+        # Rich single-image evidence synthesis.
+        # GeoChat remains the primary factual VLM answer; RemoteCLIP
+        # contributes visual class evidence without pretending those
+        # probabilities are geographic area measurements.
+        if task_type in ("SINGLE_VQA", "CAPTIONING") and final.get("answer"):
+            probs = final.get("land_cover_probs", {})
+            if probs:
+                ranked = sorted(
+                    probs.items(),
+                    key=lambda item: float(item[1]),
+                    reverse=True,
+                )[:3]
+
+                evidence_lines = [
+                    "",
+                    "Visual evidence supporting the response:",
+                ]
+
+                for label, score in ranked:
+                    evidence_lines.append(
+                        f"• {label.replace('_', ' ').title()}: "
+                        f"{float(score) * 100:.1f}% visual class score"
+                    )
+
+                evidence_lines.append(
+                    "These scores indicate relative visual similarity from "
+                    "RemoteCLIP and are not geographic area measurements."
+                )
+
+                final["answer"] = (
+                    final["answer"].strip()
+                    + "\n\n"
+                    + "\n".join(evidence_lines)
+                )
 
     elif task_type == "BI_TEMPORAL_CHANGE":
         final.update({
@@ -1316,6 +1668,9 @@ class AgenticController:
 
 def get_agent() -> AgenticController:
     return AgenticController()
+
+
+
 
 
 

@@ -143,9 +143,10 @@ class ChangeDetectionEngine:
             change_stats, t1_meta, t2_meta
         )
 
-        # Confidence: higher when model is decisive (probabilities near 0 or 1)
+        # Diagnostic confidence derived from ChangeFormer probability
+        # decisiveness. This is NOT a calibrated probability.
         certainty = float(np.mean(np.abs(change_prob - 0.5)) * 2)
-        confidence = round(min(0.96, max(0.82, 0.80 + 0.16 * certainty)), 3)
+        confidence = round(certainty, 3)
 
         return {
             "change_map_b64": change_map_b64,
@@ -204,56 +205,89 @@ class ChangeDetectionEngine:
         t1_meta: Optional[Dict],
         t2_meta: Optional[Dict],
     ) -> str:
-        """Generate domain-expert remote sensing change description."""
+        """
+        Generate an evidence-grounded change description.
+
+        ChangeFormer performs the spatial change detection.
+        This method only verbalizes measured outputs and simple
+        image-level spectral differences. It does not claim a
+        specific land-cover cause or external institutional advice.
+        """
+
         t1_arr = np.array(t1_pil, dtype=np.float32)
         t2_arr = np.array(t2_pil, dtype=np.float32)
+
         diff_arr = t2_arr - t1_arr
 
-        # Real quantitative spectral shifts in the scene
         delta_brightness = float(np.mean(diff_arr))
-        exg_t1 = 2.0 * t1_arr[:, :, 1] - t1_arr[:, :, 0] - t1_arr[:, :, 2]
-        exg_t2 = 2.0 * t2_arr[:, :, 1] - t2_arr[:, :, 0] - t2_arr[:, :, 2]
-        delta_exg = float(np.mean(exg_t2 - exg_t1))
 
-        d1 = (t1_meta or {}).get("acquisition_date", "T1 baseline")
-        d2 = (t2_meta or {}).get("acquisition_date", "T2 observation")
-        sensor = (t1_meta or {}).get("sensor", "Sentinel-2 MSI")
-
-        q_lower = query.lower()
-
-        if ("inundat" in q_lower or "flood" in q_lower or "water" in q_lower) or (delta_brightness < -10 and delta_exg < -5):
-            change_type = "Severe Water Inundation & Submerged Land Cover"
-            impact = f"Sharp drop in surface reflectance ({delta_brightness:.1f} DN) and loss of vegetative chlorophyll signal confirms widespread floodwater inundation."
-            advisory = "Strategic Advisory: Implement rapid flood perimeter containment and prioritize life-safety evacuations in low-lying riparian basins."
-        elif ("fire" in q_lower or "burn" in q_lower) or (delta_exg < -18 and diff_arr[:, :, 0].mean() > 5):
-            change_type = "Wildfire Burn Scar & Severe Forest Canopy Loss"
-            impact = f"Strong negative spectral shift in Excess Green index ({delta_exg:.1f}) accompanied by increased charcoal/red-band absorption confirms severe burn scar perimeter."
-            advisory = "Strategic Advisory: Deploy post-fire erosion barriers along steep slopes and survey remaining green corridors for habitat preservation."
-        elif ("urban" in q_lower or "built" in q_lower or "construction" in q_lower) or (delta_brightness > 12):
-            change_type = "Built-Up Urban Expansion & Impervious Surface Growth"
-            impact = f"Increase in high-albedo surface reflectance (+{delta_brightness:.1f} DN) and edge density reflects newly paved roads, building foundations, and cleared parcels."
-            advisory = "Strategic Advisory: Audit municipal drainage capacity and assess groundwater recharge vulnerability against newly expanded impervious surfaces."
-        else:
-            change_type = "Agricultural Phenology & Land Cover Modification"
-            impact = f"Bi-temporal spectral delta indicates active surface transformation across {change_stats.get('n_change_regions', 1)} contiguous parcels."
-            advisory = "Strategic Advisory: Execute periodic multi-pass monitoring to distinguish seasonal harvest stubble cycles from permanent land-use conversion."
-
-        n_reg = change_stats.get("n_change_regions", 1)
-        largest_km2 = change_stats.get("largest_region_km2", 0)
-        largest_ha = round(largest_km2 * 100.0, 1)
-
-        return (
-            f"Bi-Temporal Remote Sensing Change Assessment ({sensor.replace('_', ' ').title()} · {d1} vs {d2}):\n"
-            f"• Verified Classification: {change_type}\n"
-            f"• Total Changed Extent: {change_pct:.1f}% of monitored AOI ({area_km2:.2f} km² / {area_km2*100:.1f} hectares)\n"
-            f"• Cluster Topology: {n_reg} discrete change clusters identified. Largest contiguous polygon spans {largest_km2:.2f} km² ({largest_ha} ha)\n"
-            f"• Radiometric Evidence: {impact}\n"
-            f"• ISRO/NRSC Technical Advisory: {advisory}"
+        exg_t1 = (
+            2.0 * t1_arr[:, :, 1]
+            - t1_arr[:, :, 0]
+            - t1_arr[:, :, 2]
         )
 
-    # ──────────────────────────────────────────────────────────
-    # EVALUATION (if reference mask provided)
-    # ──────────────────────────────────────────────────────────
+        exg_t2 = (
+            2.0 * t2_arr[:, :, 1]
+            - t2_arr[:, :, 0]
+            - t2_arr[:, :, 2]
+        )
+
+        delta_exg = float(np.mean(exg_t2 - exg_t1))
+
+        d1 = (t1_meta or {}).get(
+            "acquisition_date",
+            "T1 baseline",
+        )
+
+        d2 = (t2_meta or {}).get(
+            "acquisition_date",
+            "T2 observation",
+        )
+
+        sensor = (t1_meta or {}).get(
+            "sensor",
+            "remote-sensing imagery",
+        )
+
+        n_reg = int(
+            change_stats.get(
+                "n_change_regions",
+                0,
+            )
+        )
+
+        largest_km2 = float(
+            change_stats.get(
+                "largest_region_km2",
+                0.0,
+            )
+        )
+
+        largest_ha = round(
+            largest_km2 * 100.0,
+            2,
+        )
+
+        return (
+            f"Bi-temporal Remote Sensing Change Assessment "
+            f"({str(sensor).replace('_', ' ').title()} ? "
+            f"{d1} vs {d2}):\n"
+            f"? Change Detection: ChangeFormer detected "
+            f"{change_pct:.2f}% changed area "
+            f"({area_km2:.2f} km? / "
+            f"{area_km2 * 100.0:.2f} hectares).\n"
+            f"? Spatial Structure: {n_reg} connected change "
+            f"region(s) identified; largest region spans "
+            f"{largest_km2:.2f} km? ({largest_ha:.2f} ha).\n"
+            f"? Spectral Context: Mean RGB brightness delta = "
+            f"{delta_brightness:.2f} DN-equivalent; "
+            f"Excess Green delta = {delta_exg:.2f}.\n"
+            f"? Interpretation: These measurements describe "
+            f"detected spatial and spectral differences between "
+            f"the two observations. They do not by themselves "
+            f"establish the specific land-cover cause of change."
+        )
 
     def _evaluate_against_reference(
         self, pred: np.ndarray, reference: np.ndarray

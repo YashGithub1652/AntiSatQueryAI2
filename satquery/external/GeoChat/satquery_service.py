@@ -183,11 +183,11 @@ def run_vqa(request: VQARequest):
         image_tensor = image_processor.preprocess(
             image,
             crop_size={
-                "height": 504,
-                "width": 504,
+                "height": 336,
+                "width": 336,
             },
             size={
-                "shortest_edge": 504,
+                "shortest_edge": 336,
             },
             return_tensors="pt",
         )["pixel_values"]
@@ -256,6 +256,13 @@ def run_vqa(request: VQARequest):
             generated_ids,
             skip_special_tokens=True,
         )[0].strip()
+
+        # Remove GeoChat grounding/control markup from the user-facing answer.
+        import re
+        output = re.sub(r'<[^>]*>', ' ', output)
+        output = re.sub(r'\{[^{}]*\}', ' ', output)
+        output = re.sub(r'\s+', ' ', output).strip()
+
         elapsed = time.perf_counter() - started
 
         return VQAResponse(
@@ -293,4 +300,5 @@ def run_vqa(request: VQARequest):
             fallback=False,
             error=str(exc),
         )
+
 

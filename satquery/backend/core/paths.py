@@ -1,5 +1,5 @@
-"""
-SatQuery AI — Central Project Path Manager
+﻿"""
+SatQuery AI â€” Central Project Path Manager
 ============================================
 
 Single source of truth for repository paths.
@@ -22,7 +22,7 @@ from pathlib import Path
 # satquery/backend/core/paths.py
 
 # backend/core -> backend -> satquery -> repository root
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 CONFIG_DIR = PROJECT_ROOT / "configs"
 MODELS_DIR = PROJECT_ROOT / "models"
@@ -90,3 +90,4 @@ def get_project_status() -> dict:
             "results": RESULTS_DIR.exists(),
         },
     }
+

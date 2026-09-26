@@ -1,4 +1,4 @@
-import torch
+﻿import torch
 import torch.nn as nn
 import math
 from PIL import ImageFile
@@ -88,13 +88,13 @@ class CLIPVisionTower(nn.Module):
             self.image_processor = CLIPImageProcessor.from_pretrained(self.vision_tower_name)
             self.vision_tower = CLIPVisionModel.from_pretrained(self.vision_tower_name)
             self.vision_tower.requires_grad_(False)
-            self.clip_interpolate_embeddings(image_size=504, patch_size=14)
+            self.clip_interpolate_embeddings(image_size=336, patch_size=14)
 
     def load_model(self):
         self.image_processor = CLIPImageProcessor.from_pretrained(self.vision_tower_name)
         self.vision_tower = CLIPVisionModel.from_pretrained(self.vision_tower_name)
         self.vision_tower.requires_grad_(False)
-        self.clip_interpolate_embeddings(image_size=504, patch_size=14)
+        self.clip_interpolate_embeddings(image_size=336, patch_size=14)
 
         self.is_loaded = True
         # print(self.is_loaded)
@@ -158,3 +158,4 @@ class CLIPVisionTower(nn.Module):
     @property
     def num_patches(self):
         return (self.config.image_size // self.config.patch_size) ** 2
+

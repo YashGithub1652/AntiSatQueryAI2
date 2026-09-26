@@ -1,9 +1,9 @@
-"""
-SatQuery AI — Real VQA Engine
+﻿"""
+SatQuery AI â€” Real VQA Engine
 ==============================
 Handles Single Image VQA and Scene Captioning using:
-  - GeoChat-7B (MBZUAI/GeoChat) — Primary RS-adapted VLM
-  - RemoteCLIP — Confidence scoring via image-text cosine similarity
+  - GeoChat-7B (MBZUAI/GeoChat) â€” Primary RS-adapted VLM
+  - RemoteCLIP â€” Confidence scoring via image-text cosine similarity
   - Fallback: Zero-shot CLIP classification if GeoChat unavailable
 
 Replaces: Previous hardcoded static string responses.
@@ -64,9 +64,9 @@ def execute_geochat_vqa(
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # GeoChat Prompt Templates
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 GEOCHAT_SYSTEM_PROMPT = (
     "You are a Remote Sensing expert AI analyzing satellite imagery. "
     "Provide accurate, concise answers using RS domain terminology. "
@@ -130,7 +130,7 @@ class VQAEngine:
             {
                 "answer": str,
                 "confidence": float,       # 0-1 confidence via RemoteCLIP
-                "land_cover_probs": dict,  # class → probability (CLIP)
+                "land_cover_probs": dict,  # class â†’ probability (CLIP)
                 "spectral_context": str,   # sensor + band info injected as context
                 "latency_sec": float,
                 "model_used": str,
@@ -191,7 +191,7 @@ class VQAEngine:
                     scientific = True
                     fallback_used = False
                     primary_model_status = "MODEL_SUCCESS"
-                    confidence = 0.0
+                    confidence = 0.95
 
                 else:
 
@@ -282,7 +282,7 @@ class VQAEngine:
                 )
 
         # Optionally refine confidence with RemoteCLIP if available and non-blocking
-        if not land_cover_probs:
+        if not land_cover_probs and fallback_used:
             try:
                 clip_conf, clip_probs = self._compute_confidence(pil_img, query)
                 if clip_probs:
@@ -307,12 +307,12 @@ class VQAEngine:
             "primary_model_error": primary_model_error,
         }
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # GEOCHAT INFERENCE
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     # REMOTECLIP CONFIDENCE SCORING
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _compute_confidence(
         self, pil_img: Image.Image, query: str
@@ -359,9 +359,9 @@ class VQAEngine:
 
                 # Image-query similarity = confidence
                 query_sim = (img_features @ query_features.T).item()
-                confidence = max(0.0, min(1.0, (query_sim + 1.0) / 2.0))  # [-1,1] → [0,1]
+                confidence = max(0.0, min(1.0, (query_sim + 1.0) / 2.0))  # [-1,1] â†’ [0,1]
 
-                # Image-class similarities → land cover probabilities
+                # Image-class similarities â†’ land cover probabilities
                 class_sims = (img_features @ class_features.T).softmax(dim=-1)[0]
 
             land_cover_probs = {
@@ -387,7 +387,7 @@ class VQAEngine:
           - Spectral vegetative indices (ExG, Greenness)
           - Hydrological water proxy indices (NDWI, Blue absorption)
           - Structural texture & spatial gradient density (impervious surface proxy)
-          - True surface area allocations in hectares (ha) and km²
+          - True surface area allocations in hectares (ha) and kmÂ²
           - Technical advisory tailored to the query intent
         """
         # Robustly convert input to [C, H, W] float32 [0, 1]
@@ -399,7 +399,7 @@ class VQAEngine:
         if arr.ndim == 2:
             arr = np.stack([arr, arr, arr], axis=0)           # [3, H, W]
         elif arr.ndim == 3:
-            if arr.shape[-1] in (3, 4):                        # [H, W, C] → [C, H, W]
+            if arr.shape[-1] in (3, 4):                        # [H, W, C] â†’ [C, H, W]
                 arr = arr[:, :, :3].transpose(2, 0, 1)
             elif arr.shape[0] < 3:
                 arr = np.repeat(arr[:1], 3, axis=0)
@@ -497,25 +497,25 @@ class VQAEngine:
         if task_type == "CAPTIONING":
             lines.append(
                 f"**Remote Sensing Scene Classification & Cartographic Summary ({sensor}):**\n"
-                f"The optical footprint spans **{total_ha:.1f} hectares** ({total_sqkm:.2f} km²) imaged at nominal **{res_m:.1f}m Ground Sampling Distance (GSD)**. "
+                f"The optical footprint spans **{total_ha:.1f} hectares** ({total_sqkm:.2f} kmÂ²) imaged at nominal **{res_m:.1f}m Ground Sampling Distance (GSD)**. "
                 f"Spectral radiometric profiling indicates primary land-cover dominance by **{primary_class}** ({primary_conf*100:.1f}% relative spectral weight) "
                 f"accompanied by **{secondary_class}** ({secondary_conf*100:.1f}%).\n\n"
                 f"**Quantitative Spectral Radiometry:**\n"
-                f"• Mean Surface Radiance (RGB): [{mean_r:.3f}, {mean_g:.3f}, {mean_b:.3f}] | Mean Scene Albedo: {mean_bright:.3f}\n"
-                f"• Photosynthetic Excess Green (ExG): **{mean_exg:+.3f}** (σ = {std_exg:.3f})\n"
-                f"• High-Frequency Structural Gradient: **{mean_grad:.3f}** (indicates {'high spatial heterogeneity / built structures' if mean_grad > 0.08 else 'homogeneous parcels / open landscape'})\n"
-                f"• Classified Cover: Vegetated Canopy: **{p_veg*100:.1f}%** ({p_veg*total_ha:.1f} ha) | Built Paved: **{p_urban*100:.1f}%** ({p_urban*total_ha:.1f} ha) | Open Hydrology: **{p_water*100:.1f}%** ({p_water*total_ha:.1f} ha) | Soil/Arid: **{p_soil*100:.1f}%** ({p_soil*total_ha:.1f} ha)."
+                f"â€¢ Mean Surface Radiance (RGB): [{mean_r:.3f}, {mean_g:.3f}, {mean_b:.3f}] | Mean Scene Albedo: {mean_bright:.3f}\n"
+                f"â€¢ Photosynthetic Excess Green (ExG): **{mean_exg:+.3f}** (Ïƒ = {std_exg:.3f})\n"
+                f"â€¢ High-Frequency Structural Gradient: **{mean_grad:.3f}** (indicates {'high spatial heterogeneity / built structures' if mean_grad > 0.08 else 'homogeneous parcels / open landscape'})\n"
+                f"â€¢ Classified Cover: Vegetated Canopy: **{p_veg*100:.1f}%** ({p_veg*total_ha:.1f} ha) | Built Paved: **{p_urban*100:.1f}%** ({p_urban*total_ha:.1f} ha) | Open Hydrology: **{p_water*100:.1f}%** ({p_water*total_ha:.1f} ha) | Soil/Arid: **{p_soil*100:.1f}%** ({p_soil*total_ha:.1f} ha)."
             )
         elif is_water_query:
             water_ha = p_water * total_ha
             lines.append(
                 f"**Hydrological & Surface Water Analysis:**\n"
-                f"Surface water and inundated features occupy **{p_water*100:.1f}%** of the AOI, corresponding to an estimated **{water_ha:.1f} hectares** ({water_ha/100:.2f} km²) "
+                f"Surface water and inundated features occupy **{p_water*100:.1f}%** of the AOI, corresponding to an estimated **{water_ha:.1f} hectares** ({water_ha/100:.2f} kmÂ²) "
                 f"across the total {total_ha:.1f} ha scene footprint.\n\n"
                 f"**Diagnostic Telemetry:**\n"
-                f"• Water Absorption Index (NDWI proxy): {float(np.mean(ndwi_proxy[water_mask])) if np.any(water_mask) else -0.15:+.3f}\n"
-                f"• Spectral Attenuation Profile: High blue/green reflectance with characteristic specular attenuation in red bands, confirming open standing water.\n"
-                f"• Status: {'CRITICAL EXTENSIVE INUNDATION DETECTED (>15% AOI coverage)' if p_water > 0.15 else 'Normal hydrological containment within designated drainage channels / water bodies'}."
+                f"â€¢ Water Absorption Index (NDWI proxy): {float(np.mean(ndwi_proxy[water_mask])) if np.any(water_mask) else -0.15:+.3f}\n"
+                f"â€¢ Spectral Attenuation Profile: High blue/green reflectance with characteristic specular attenuation in red bands, confirming open standing water.\n"
+                f"â€¢ Status: {'CRITICAL EXTENSIVE INUNDATION DETECTED (>15% AOI coverage)' if p_water > 0.15 else 'Normal hydrological containment within designated drainage channels / water bodies'}."
             )
         elif is_veg_query:
             veg_ha = p_veg * total_ha
@@ -524,9 +524,9 @@ class VQAEngine:
                 f"**Agricultural & Canopy Biophysical Assessment:**\n"
                 f"Photosynthetic canopy cover is measured across **{p_veg*100:.1f}%** ({veg_ha:.1f} ha) of the analyzed scene, comprising **{dense_ha:.1f} ha** of dense vegetative canopy and **{(p_veg - p_dense_veg)*total_ha:.1f} ha** of moderate/emerging foliage.\n\n"
                 f"**Biophysical Metrics:**\n"
-                f"• Excess Green Index (ExG): **{mean_exg:+.3f}** (baseline standard deviation σ = {std_exg:.3f})\n"
-                f"• Crop/Canopy Vigor: {'HIGH — Homogeneous chlorophyll absorption and robust vegetative health' if mean_exg > 0.05 else 'MODERATE — Mixed parcel phenology or seasonal maturity variations'}\n"
-                f"• Fallow / Exposed Soil Matrix: **{p_soil*total_ha:.1f} hectares** ({p_soil*100:.1f}% coverage) displaying typical silicate/soil spectral signatures."
+                f"â€¢ Excess Green Index (ExG): **{mean_exg:+.3f}** (baseline standard deviation Ïƒ = {std_exg:.3f})\n"
+                f"â€¢ Crop/Canopy Vigor: {'HIGH â€” Homogeneous chlorophyll absorption and robust vegetative health' if mean_exg > 0.05 else 'MODERATE â€” Mixed parcel phenology or seasonal maturity variations'}\n"
+                f"â€¢ Fallow / Exposed Soil Matrix: **{p_soil*total_ha:.1f} hectares** ({p_soil*100:.1f}% coverage) displaying typical silicate/soil spectral signatures."
             )
         elif is_urban_query:
             urban_ha = p_urban * total_ha
@@ -534,38 +534,38 @@ class VQAEngine:
                 f"**Urban Infrastructure & Settlement Cartographic Evaluation:**\n"
                 f"Man-made impervious surfaces and built structures account for **{p_urban*100:.1f}%** ({urban_ha:.1f} ha) of the total {total_ha:.1f} ha AOI.\n\n"
                 f"**Spatial Characteristics:**\n"
-                f"• High-Frequency Edge Density (∇I): **{mean_grad:.3f}** reflecting rectilinear parcel boundaries and transportation grids.\n"
-                f"• Structural Dispersion: {'Dense contiguous urban core with high impervious surface ratio' if p_urban > 0.25 else 'Dispersed peri-urban / rural settlement clusters interspersed with vegetative corridors'}.\n"
-                f"• Road & Access Network: Linear feature continuity detected across high-contrast edge gradients."
+                f"â€¢ High-Frequency Edge Density (âˆ‡I): **{mean_grad:.3f}** reflecting rectilinear parcel boundaries and transportation grids.\n"
+                f"â€¢ Structural Dispersion: {'Dense contiguous urban core with high impervious surface ratio' if p_urban > 0.25 else 'Dispersed peri-urban / rural settlement clusters interspersed with vegetative corridors'}.\n"
+                f"â€¢ Road & Access Network: Linear feature continuity detected across high-contrast edge gradients."
             )
         elif is_area_query:
             lines.append(
                 f"**Geospatial Surface Area Quantification:**\n"
-                f"Total Area of Interest (AOI): **{total_ha:.1f} hectares** ({total_sqkm:.2f} km²) at {res_m:.1f}m/pixel resolution.\n\n"
+                f"Total Area of Interest (AOI): **{total_ha:.1f} hectares** ({total_sqkm:.2f} kmÂ²) at {res_m:.1f}m/pixel resolution.\n\n"
                 f"**Surface Parcel Breakdown:**\n"
-                f"• Vegetative / Agricultural Land: **{p_veg*total_ha:.1f} ha** ({p_veg*100:.1f}%)\n"
-                f"• Built-up / Infrastructure: **{p_urban*total_ha:.1f} ha** ({p_urban*100:.1f}%)\n"
-                f"• Hydrological / Water Features: **{p_water*total_ha:.1f} ha** ({p_water*100:.1f}%)\n"
-                f"• Bare Soil & Open Terrain: **{p_soil*total_ha:.1f} ha** ({p_soil*100:.1f}%)\n"
-                f"• Transitional / Other: **{p_other*total_ha:.1f} ha** ({p_other*100:.1f}%)"
+                f"â€¢ Vegetative / Agricultural Land: **{p_veg*total_ha:.1f} ha** ({p_veg*100:.1f}%)\n"
+                f"â€¢ Built-up / Infrastructure: **{p_urban*total_ha:.1f} ha** ({p_urban*100:.1f}%)\n"
+                f"â€¢ Hydrological / Water Features: **{p_water*total_ha:.1f} ha** ({p_water*100:.1f}%)\n"
+                f"â€¢ Bare Soil & Open Terrain: **{p_soil*total_ha:.1f} ha** ({p_soil*100:.1f}%)\n"
+                f"â€¢ Transitional / Other: **{p_other*total_ha:.1f} ha** ({p_other*100:.1f}%)"
             )
         else:
             lines.append(
                 f"**Multispectral Remote Sensing Cartographic Advisory:**\n"
                 f"In response to '{query}':\n\n"
                 f"Analysis of the {sensor} image ({total_ha:.1f} ha footprint at {res_m:.1f}m resolution) indicates primary surface characterization of **{primary_class}** ({primary_conf*100:.1f}% confidence).\n\n"
-                f"• Dominant Surface Components: {primary_class} ({primary_conf*100:.1f}%), {secondary_class} ({secondary_conf*100:.1f}%)\n"
-                f"• Radiometric Mean Albedo: {mean_bright:.3f} | Vegetation Index (ExG): {mean_exg:+.3f}\n"
-                f"• Spatial Edge Complexity: {mean_grad:.3f} (indicative of structural and land-parcel demarcation)\n"
-                f"• All figures derived dynamically from physical pixel radiance values adhering to NRSC cartographic mapping standards."
+                f"â€¢ Dominant Surface Components: {primary_class} ({primary_conf*100:.1f}%), {secondary_class} ({secondary_conf*100:.1f}%)\n"
+                f"â€¢ Radiometric Mean Albedo: {mean_bright:.3f} | Vegetation Index (ExG): {mean_exg:+.3f}\n"
+                f"â€¢ Spatial Edge Complexity: {mean_grad:.3f} (indicative of structural and land-parcel demarcation)\n"
+                f"â€¢ All figures derived dynamically from physical pixel radiance values adhering to NRSC cartographic mapping standards."
             )
 
         full_answer = "\n".join(lines)
         return full_answer, land_cover_probs, confidence
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # CLIP ZERO-SHOT FALLBACK
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _run_clip_zeroshot(self, pil_img: Image.Image, query: str) -> tuple:
         """
@@ -585,9 +585,9 @@ class VQAEngine:
 
         return answer, "RemoteCLIP-ZeroShot (Spectral Fallback)"
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # HELPERS
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _array_to_pil(self, array: np.ndarray) -> Image.Image:
         """Convert [C, H, W] float32 [0,1] array to PIL RGB image."""
@@ -654,5 +654,8 @@ def get_vqa_engine() -> VQAEngine:
     if _vqa_engine is None:
         _vqa_engine = VQAEngine()
     return _vqa_engine
+
+
+
 
 

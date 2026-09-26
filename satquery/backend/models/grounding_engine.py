@@ -329,12 +329,40 @@ class GroundingEngine:
         ])
 
         img_tensor = transform(pil_img).unsqueeze(0).to(self._device)
-        tokens = tokenizer(
-            query, return_tensors="pt", padding=True, truncation=True
-        ).to(self._device)
+
+        # RSVG uses the legacy pytorch_pretrained_bert tokenizer API.
+        # Do not call it like a Hugging Face transformers tokenizer.
+        tokens = tokenizer.tokenize(query)
+        token_ids = tokenizer.convert_tokens_to_ids(tokens)
+
+        word_id = torch.tensor(
+            [token_ids],
+            dtype=torch.long,
+            device=self._device,
+        )
+
+        word_mask = torch.ones_like(
+            word_id,
+            dtype=torch.long,
+            device=self._device,
+        )
+
+        # RSVG/MGVLF expects a pixel padding mask [B,H,W].
+        # Our image is resized to a fixed 640x640 tensor, so there
+        # is no padding in this inference path.
+        pixel_mask = torch.zeros(
+            (img_tensor.shape[0], img_tensor.shape[2], img_tensor.shape[3]),
+            dtype=torch.bool,
+            device=self._device,
+        )
 
         with torch.no_grad():
-            output = model(img_tensor, tokens["input_ids"], tokens["attention_mask"])
+            output = model(
+                img_tensor,
+                pixel_mask,
+                word_id,
+                word_mask,
+            )
 
         # RSVG output: predicted box in [0, 1] normalized xyxy
         if isinstance(output, dict):
@@ -351,6 +379,16 @@ class GroundingEngine:
         x2 = int(box[2] * img_w)
         y2 = int(box[3] * img_h)
 
+        # Normalize RSVG coordinates to valid xyxy ordering.
+        x1, x2 = sorted((x1, x2))
+        y1, y2 = sorted((y1, y2))
+
+        # Keep coordinates inside the source image.
+        x1 = max(0, min(img_w, x1))
+        x2 = max(0, min(img_w, x2))
+        y1 = max(0, min(img_h, y1))
+        y2 = max(0, min(img_h, y2))
+
         # RSVG returns single box per query
         return [{
             "region_idx": 1,
@@ -359,7 +397,7 @@ class GroundingEngine:
             "label": query,
             "width_px": x2 - x1,
             "height_px": y2 - y1,
-        }], "RSVG-Swin-Transformer"
+        }], "RSVG-MGVLF (DETR-R50 + BERT)"
 
     # ──────────────────────────────────────────────────────────
     # SAM MASK GENERATION
