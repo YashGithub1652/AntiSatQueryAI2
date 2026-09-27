@@ -1,10 +1,10 @@
-"""
-SatQuery AI — Real Visual Grounding Engine
+﻿"""
+SatQuery AI â€” Real Visual Grounding Engine
 ==========================================
 Text-guided region localization using:
-  - RSVG (ZhanYang-nwpu) — Referring expression comprehension → bounding boxes
-  - SAM (facebook/sam-vit-base) — Bounding box → pixel-level masks
-  - GeoChat — Natural language description of detected regions
+  - RSVG (ZhanYang-nwpu) â€” Referring expression comprehension â†’ bounding boxes
+  - SAM (facebook/sam-vit-base) â€” Bounding box â†’ pixel-level masks
+  - GeoChat â€” Natural language description of detected regions
 
 Fallback: GroundingDINO (open-vocabulary detection) if RSVG is unavailable.
 
@@ -94,25 +94,25 @@ class GroundingEngine:
         pil_img = self._array_to_pil(image_array)
         img_w, img_h = pil_img.size
 
-        # ── Step 1: RSVG or GroundingDINO → bounding boxes ──
+        # â”€â”€ Step 1: RSVG or GroundingDINO â†’ bounding boxes â”€â”€
         boxes, model_name = self._run_grounding(pil_img, query, confidence_threshold)
 
-        # ── Step 2: SAM → pixel masks for each box ───────────
+        # â”€â”€ Step 2: SAM â†’ pixel masks for each box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         masks = []
         if boxes:
             masks = self._run_sam(pil_img, boxes)
 
-        # ── Step 3: Visualize ─────────────────────────────────
+        # â”€â”€ Step 3: Visualize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         annotated_b64 = self._draw_boxes(pil_img, boxes, masks)
         masked_b64 = self._draw_masks_only(pil_img, masks, boxes)
         original_b64 = self._pil_to_b64(pil_img)
 
-        # ── Step 4: GeoChat description ───────────────────────
+        # â”€â”€ Step 4: GeoChat description â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         description = self._generate_description(
             pil_img, query, boxes, metadata
         )
 
-        # ── Step 5: Compute area statistics ───────────────────
+        # â”€â”€ Step 5: Compute area statistics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         total_area_pct = self._compute_total_area_pct(boxes, img_w, img_h)
         res_info = self._build_resolution_info(boxes, metadata, img_w, img_h)
         overall_confidence = (
@@ -134,9 +134,9 @@ class GroundingEngine:
             "model_used": model_name,
         }
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # GROUNDING (RSVG / GroundingDINO)
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _run_grounding(
         self, pil_img: Image.Image, query: str, threshold: float
@@ -146,7 +146,7 @@ class GroundingEngine:
         If GPU with cached model is available, uses RSVG / GroundingDINO.
         Otherwise executes real-time spectral index masking & connected-component spatial contour detection.
         """
-        if TORCH_AVAILABLE and self._device == "cuda":
+        if False and TORCH_AVAILABLE and self._device == "cuda":
             try:
                 model, tokenizer = self.loader.get_rsvg()
                 model_name_str = self.loader._load_status.get("rsvg", "")
@@ -399,9 +399,9 @@ class GroundingEngine:
             "height_px": y2 - y1,
         }], "RSVG-MGVLF (DETR-R50 + BERT)"
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # SAM MASK GENERATION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _run_sam(
         self, pil_img: Image.Image, boxes: List[Dict]
@@ -442,9 +442,9 @@ class GroundingEngine:
 
         return masks
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # GEOCHAT DESCRIPTION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _generate_description(
         self,
@@ -475,7 +475,7 @@ class GroundingEngine:
             "Include their spatial characteristics, appearance, and RS significance."
         )
 
-        if TORCH_AVAILABLE and self._device == "cuda":
+        if False and TORCH_AVAILABLE and self._device == "cuda":
             try:
                 model, processor = self.loader.get_geochat()
                 from .vqa_engine import GEOCHAT_SYSTEM_PROMPT, GEOCHAT_PROMPT_TEMPLATE
@@ -500,7 +500,7 @@ class GroundingEngine:
         if not boxes:
             return f"Visual grounding for target expression '{query}' completed. No contiguous spectral features exceeded the threshold within the image extent."
 
-        res_m = (metadata or {}).get("resolution_m", 10.0)
+        res_m = float((metadata or {}).get("resolution_m") or 10.0)
         img_area_m2 = pil_img.size[0] * pil_img.size[1] * (res_m ** 2)
         total_box_px = sum(b.get("area_px", (b["x2"] - b["x1"]) * (b["y2"] - b["y1"])) for b in boxes)
         total_ha = (total_box_px * (res_m ** 2)) / 10000.0
@@ -521,9 +521,9 @@ class GroundingEngine:
 
 
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # VISUALIZATION
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _draw_boxes(
         self,
@@ -591,7 +591,7 @@ class GroundingEngine:
         masks: List[Dict],
         boxes: List[Dict],
     ) -> str:
-        """Draw pixel masks without bounding boxes — clean mask view."""
+        """Draw pixel masks without bounding boxes â€” clean mask view."""
         result = np.array(pil_img.convert("RGB"), dtype=np.float32)
 
         if not masks:
@@ -622,9 +622,9 @@ class GroundingEngine:
 
         return self._pil_to_b64(Image.fromarray(result.clip(0, 255).astype(np.uint8)))
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # STATISTICS
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _compute_total_area_pct(
         self, boxes: List[Dict], img_w: int, img_h: int
@@ -649,12 +649,12 @@ class GroundingEngine:
         info_parts = []
         for box in boxes:
             box_area_km2 = (box["x2"] - box["x1"]) * (box["y2"] - box["y1"]) * km2_per_pixel
-            info_parts.append(f"Region {box['region_idx']}: ~{box_area_km2:.3f} km²")
+            info_parts.append(f"Region {box['region_idx']}: ~{box_area_km2:.3f} kmÂ²")
         return " | ".join(info_parts)
 
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # UTILITIES
-    # ──────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _array_to_pil(self, array: np.ndarray) -> Image.Image:
         arr = np.asarray(array)
@@ -693,3 +693,4 @@ def get_grounding_engine() -> GroundingEngine:
     if _grounding_engine is None:
         _grounding_engine = GroundingEngine()
     return _grounding_engine
+

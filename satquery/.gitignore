@@ -1,0 +1,74 @@
+﻿# ============================================================
+# SatQuery AI — Git Ignore
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+geochat_env/
+satquery_env/
+
+# Secrets / local configuration
+.env
+.env.*
+!.env.example
+
+# Large model weights / checkpoints
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.gguf
+
+# Model/data directories
+models/
+checkpoints/
+data/
+datasets/
+bigearthnet/
+DIOR_RSVG_DATASET/
+SATQUERY_LEVIR_TEST_PAIR/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
+# Generated outputs
+outputs/
+results/
+runs/
+logs/
+*.log
+
+# Temporary / diagnostic backups
+*.before-*
+*_BACKUP_*/
+frontend_BACKUP_*/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary Office files
+~$*
+
+# Large/external research datasets and visual assets
+external/RSVG-pytorch/DIOR_RSVG/
+external/RSVG-pytorch/fig/
+external/TransVG/docs/

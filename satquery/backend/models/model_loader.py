@@ -485,8 +485,6 @@ class ModelLoader:
                 BitsAndBytesConfig,
             )
 
-            from peft import PeftModel
-
         except ImportError as exc:
 
             self._load_status["geochat"] = (
@@ -544,12 +542,47 @@ class ModelLoader:
                     None,
                 )
 
-            model = (
-                AutoModelForCausalLM
-                .from_pretrained(
-                    model_id,
-                    **model_kwargs,
+            # Native GeoChat loader
+            import sys
+
+            geochat_root = (
+                Path(__file__).resolve().parents[2]
+                / "external"
+                / "GeoChat"
+            )
+
+            if str(geochat_root) not in sys.path:
+                sys.path.insert(0, str(geochat_root))
+
+            from geochat.model.language_model.geochat_llama import (
+                GeoChatLlamaForCausalLM,
+            )
+
+            # Use the existing local HF snapshot.
+            geochat_snapshot = (
+                Path.home()
+                / ".cache"
+                / "huggingface"
+                / "hub"
+                / "models--MBZUAI--geochat-7B"
+                / "snapshots"
+            )
+
+            snapshots = list(geochat_snapshot.glob("*"))
+
+            if not snapshots:
+                raise RuntimeError(
+                    "Local GeoChat-7B Hugging Face snapshot not found."
                 )
+
+            geochat_path = snapshots[0]
+
+            model_kwargs.pop("trust_remote_code", None)
+
+            model = GeoChatLlamaForCausalLM.from_pretrained(
+                str(geochat_path),
+                low_cpu_mem_usage=True,
+                **model_kwargs,
             )
 
             # ---------------------------------------------------------
@@ -576,116 +609,96 @@ class ModelLoader:
             )
 
             if not vision_checkpoint.exists():
-                raise RuntimeError(
-                    "Verified GeoChat vision checkpoint is missing: "
-                    f"{vision_checkpoint}\n"
-                    "Expected native-336 GeoChat vision weights."
+                logger.warning(
+                    "geochat_vision_336.pt not found; "
+                    "using the native GeoChat vision tower."
                 )
+                vision_checkpoint = None
 
-            try:
-                from transformers import (
-                    CLIPVisionModel,
-                    CLIPImageProcessor,
-                )
+            if vision_checkpoint is not None:
+                try:
+                    from transformers import (
+                        CLIPVisionModel,
+                        CLIPImageProcessor,
+                    )
 
-                vision_model_id = (
-                    "openai/clip-vit-large-patch14-336"
-                )
+                    vision_model_id = "openai/clip-vit-large-patch14-336"
 
-                logger.info(
-                    "Loading verified GeoChat native-336 vision "
-                    "checkpoint: %s",
-                    vision_checkpoint,
-                )
+                    logger.info(
+                        "Loading verified GeoChat native-336 vision checkpoint: %s",
+                        vision_checkpoint,
+                    )
 
-                vision_model = (
-                    CLIPVisionModel.from_pretrained(
+                    vision_model = CLIPVisionModel.from_pretrained(
                         vision_model_id,
                         torch_dtype=torch.float16,
                     )
-                )
 
-                vision_state = torch.load(
-                    vision_checkpoint,
-                    map_location="cpu",
-                    weights_only=True,
-                )
-
-                vision_model.load_state_dict(
-                    vision_state,
-                    strict=True,
-                )
-
-                # Use the same GPU as the existing GeoChat vision
-                # tower/projector when available.
-                vision_device = "cuda:1"
-
-                if torch.cuda.device_count() < 2:
-                    vision_device = "cuda:0"
-
-                vision_model = vision_model.to(
-                    vision_device
-                )
-                vision_model.eval()
-
-                vision_wrapper = (
-                    model.get_vision_tower()
-                )
-
-                vision_wrapper.vision_tower = (
-                    vision_model
-                )
-
-                vision_wrapper.image_processor = (
-                    CLIPImageProcessor.from_pretrained(
-                        vision_model_id
+                    vision_state = torch.load(
+                        vision_checkpoint,
+                        map_location="cpu",
+                        weights_only=True,
                     )
-                )
 
-                vision_wrapper.is_loaded = True
+                    vision_model.load_state_dict(
+                        vision_state,
+                        strict=True,
+                    )
 
-                position_shape = tuple(
-                    vision_model
-                    .vision_model
-                    .embeddings
-                    .position_embedding
-                    .weight.shape
-                )
+                    vision_device = "cuda:1"
 
-                if position_shape != (577, 1024):
+                    if torch.cuda.device_count() < 2:
+                        vision_device = "cuda:0"
+
+                    vision_model = vision_model.to(
+                        vision_device
+                    )
+                    vision_model.eval()
+
+                    vision_wrapper = model.get_vision_tower()
+                    vision_wrapper.vision_tower = vision_model
+                    vision_wrapper.image_processor = (
+                        CLIPImageProcessor.from_pretrained(
+                            vision_model_id
+                        )
+                    )
+                    vision_wrapper.is_loaded = True
+
+                    position_shape = tuple(
+                        vision_model
+                        .vision_model
+                        .embeddings
+                        .position_embedding
+                        .weight.shape
+                    )
+
+                    if position_shape != (577, 1024):
+                        raise RuntimeError(
+                            "Invalid GeoChat vision checkpoint "
+                            f"geometry: {position_shape}; "
+                            "expected (577, 1024)."
+                        )
+
+                    self._checkpoint_paths[
+                        "geochat_vision_336"
+                    ] = str(vision_checkpoint)
+
+                    logger.info(
+                        "Verified GeoChat native-336 vision "
+                        "checkpoint loaded: device=%s geometry=%s",
+                        vision_device,
+                        position_shape,
+                    )
+
+                except Exception as vision_exc:
                     raise RuntimeError(
-                        "Invalid GeoChat vision checkpoint "
-                        f"geometry: {position_shape}; "
-                        "expected (577, 1024)."
-                    )
-
-                self._checkpoint_paths[
-                    "geochat_vision_336"
-                ] = str(vision_checkpoint)
-
+                        "Verified GeoChat native-336 vision "
+                        "checkpoint could not be loaded."
+                    ) from vision_exc
+            else:
                 logger.info(
-                    "Verified GeoChat native-336 vision "
-                    "checkpoint loaded: device=%s geometry=%s",
-                    vision_device,
-                    position_shape,
+                    "Using native GeoChat vision tower."
                 )
-
-            except Exception as vision_exc:
-                self._load_status[
-                    "geochat"
-                ] = (
-                    "FAILED: verified native-336 "
-                    f"vision loading: {vision_exc}"
-                )
-
-                self._scientific_flags[
-                    "geochat"
-                ] = False
-
-                raise RuntimeError(
-                    "Verified GeoChat native-336 vision "
-                    "checkpoint could not be loaded."
-                ) from vision_exc
 
             # ---------------------------------------------------------
             # Optional BigEarthNet LoRA

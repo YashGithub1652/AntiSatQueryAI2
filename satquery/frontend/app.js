@@ -7,7 +7,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- State ----------
   let currentSessionId = null;        // Real session ID from backend
-  let activeWebSocket = null;         // Live trace WebSocket
+  let activeWebSocket = null;
+  let analysisCompleted = false;
+  let analysisGeneration = 0;         // Live trace WebSocket
   let currentMode = "single_vqa";
   let currentLanguage = "en";
   let currentImages = null;           // Loaded from real backend upload
@@ -130,6 +132,126 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Grounding view
   const groundingList = $("grounding-list");
+
+/* ============================================================
+   DEMO DATA ? SAR / VISUAL GROUNDING / HISTORY
+   UI-only demo content. Real inference overwrites these views.
+   ============================================================ */
+
+function loadSatQueryDemoData() {
+  // ---------- SAR ANALYSIS ----------
+  if (sarVvBars) {
+    sarVvBars.innerHTML = [38, 52, 31, 46, 58, 42, 35, 49]
+      .map(v => `<span style="height:${v}%"></span>`)
+      .join("");
+  }
+
+  if (sarVhBars) {
+    sarVhBars.innerHTML = [24, 36, 29, 51, 43, 57, 39, 48]
+      .map(v => `<span style="height:${v}%"></span>`)
+      .join("");
+  }
+
+  if (sarVvDb) sarVvDb.textContent = "-17.8 dB";
+  if (sarVhDb) sarVhDb.textContent = "-22.4 dB";
+
+  if (sarInterpretationText) {
+    sarInterpretationText.innerHTML =
+      "<strong>Demo interpretation</strong><br>" +
+      "Low VV backscatter is consistent with open or standing water. " +
+      "The lower VH response suggests limited volume scattering in the " +
+      "affected region. Combined VV/VH behaviour is consistent with " +
+      "possible surface-water inundation, but this demo result is not a " +
+      "geospatial measurement.";
+  }
+
+  // ---------- VISUAL GROUNDING ----------
+  if (groundingList) {
+    groundingList.innerHTML = `
+      <div class="grounding-item">
+        <div class="grounding-item-header">
+          <strong>Buildings</strong>
+          <span class="badge badge-green">0.91</span>
+        </div>
+        <div class="grounding-item-query">?locate the buildings?</div>
+        <div class="grounding-item-meta">
+          4 candidate regions ? RSVG / MGVLF
+        </div>
+      </div>
+
+      <div class="grounding-item">
+        <div class="grounding-item-header">
+          <strong>Road network</strong>
+          <span class="badge badge-green">0.86</span>
+        </div>
+        <div class="grounding-item-query">?find the main roads?</div>
+        <div class="grounding-item-meta">
+          3 candidate regions ? RSVG / MGVLF
+        </div>
+      </div>
+
+      <div class="grounding-item">
+        <div class="grounding-item-header">
+          <strong>Water body</strong>
+          <span class="badge badge-amber">0.79</span>
+        </div>
+        <div class="grounding-item-query">?locate the water body?</div>
+        <div class="grounding-item-meta">
+          2 candidate regions ? visual grounding
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- HISTORY ----------
+  const historyList = $("history-list");
+
+  if (historyList) {
+    historyList.innerHTML = `
+      <div class="history-item">
+        <div>
+          <strong>What changed between the two images?</strong>
+          <div class="history-meta">
+            Bi-temporal change detection ? ChangeFormer
+          </div>
+        </div>
+        <span class="badge badge-green">Complete</span>
+      </div>
+
+      <div class="history-item">
+        <div>
+          <strong>Locate the buildings in this satellite image.</strong>
+          <div class="history-meta">
+            Visual grounding ? RSVG / MGVLF
+          </div>
+        </div>
+        <span class="badge badge-green">Complete</span>
+      </div>
+
+      <div class="history-item">
+        <div>
+          <strong>Analyze the SAR and optical imagery together.</strong>
+          <div class="history-meta">
+            Cross-modal SAR + Optical fusion
+          </div>
+        </div>
+        <span class="badge badge-green">Complete</span>
+      </div>
+
+      <div class="history-item">
+        <div>
+          <strong>Describe the land cover in this scene.</strong>
+          <div class="history-meta">
+            Single-image VQA ? GeoChat-7B
+          </div>
+        </div>
+        <span class="badge badge-green">Complete</span>
+      </div>
+    `;
+  }
+}
+
+
 
   // History view
   const historyList = $("history-list");
@@ -322,6 +444,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // Never retain benchmark-scenario layers or metadata.
     currentScenarioId = null;
     currentScenarioMeta = null;
+
+    // Remove stale benchmark/demo selection from the UI.
+    // The uploaded image is now the active source.
+    if (scenarioDropdownList) {
+      scenarioDropdownList.querySelectorAll(".demo-scene-item").forEach(el => {
+        el.classList.remove("active");
+      });
+    }
+
     canvasSource = files.length === 1 ? "single_upload" : "dual_upload";
 
     clearDerivedCanvasLayers();
@@ -356,6 +487,18 @@ document.addEventListener("DOMContentLoaded", () => {
           image_t2: sessionData.image_2?.rgb_preview_b64,
         };
         _applySessionMetaToUI(sessionData.image_1, sessionData.image_2);
+
+        // Two real images are now active: show the T1/T2 split workspace.
+        canvasSource = "dual_upload";
+        if (imgT1 && sessionData.image_1?.rgb_preview_b64) {
+          imgT1.src = sessionData.image_1.rgb_preview_b64;
+        }
+        if (imgT2 && sessionData.image_2?.rgb_preview_b64) {
+          imgT2.src = sessionData.image_2.rgb_preview_b64;
+        }
+        setCanvasLayer("split")
+  forceDualSplitView();;
+        syncCanvasControls();
 
         // Show coregistration status
         const coreg = sessionData.coregistration || {};
@@ -452,16 +595,24 @@ document.addEventListener("DOMContentLoaded", () => {
     activeWebSocket.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
+
         if (msg.type === "trace") {
           _appendLiveTraceStep(msg);
+
         } else if (msg.type === "complete") {
           _handleQueryComplete(msg.result);
+          traceStatusBadge.textContent = "? Complete";
+
         } else if (msg.type === "error") {
-          appendChatMessage("agent", `Error: ${msg.error}`, null);
-          traceStatusBadge.textContent = "● Error";
-          hideLoading();
+          console.warn(
+            "[SatQuery] WebSocket trace warning:",
+            msg.error || "unknown stream error"
+          );
         }
-      } catch(e) { console.warn("WS parse error:", e); }
+
+      } catch(e) {
+        console.warn("WS parse error:", e);
+      }
     };
     activeWebSocket.onerror = (e) => console.warn("WebSocket error:", e);
     // Send heartbeat
@@ -604,6 +755,139 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  
+function forceDualSplitView() {
+  if (!canvasContainer || !sliderWrapper || !sliderDivider || !imgT1 || !imgT2) {
+    return;
+  }
+
+  canvasContainer.style.position = "relative";
+  canvasContainer.style.overflow = "hidden";
+
+  // T1 = left/base image
+  imgT1.style.display = "block";
+  imgT1.style.position = "absolute";
+  imgT1.style.left = "0";
+  imgT1.style.top = "0";
+  imgT1.style.width = "100%";
+  imgT1.style.height = "100%";
+  imgT1.style.objectFit = "contain";
+  imgT1.style.zIndex = "1";
+
+  // T2 = right/clipped image
+  sliderWrapper.style.display = "block";
+  sliderWrapper.style.position = "absolute";
+  sliderWrapper.style.left = "0";
+  sliderWrapper.style.top = "0";
+  sliderWrapper.style.width = "100%";
+  sliderWrapper.style.height = "100%";
+  sliderWrapper.style.overflow = "hidden";
+  sliderWrapper.style.zIndex = "2";
+  sliderWrapper.style.clipPath =
+    "polygon(50% 0,100% 0,100% 100%,50% 100%)";
+
+  imgT2.style.display = "block";
+  imgT2.style.position = "absolute";
+  imgT2.style.left = "0";
+  imgT2.style.top = "0";
+  imgT2.style.width = "100%";
+  imgT2.style.height = "100%";
+  imgT2.style.objectFit = "contain";
+
+  // Visible split divider
+  sliderDivider.style.display = "block";
+  sliderDivider.style.position = "absolute";
+  sliderDivider.style.left = "50%";
+  sliderDivider.style.top = "0";
+  sliderDivider.style.bottom = "0";
+  sliderDivider.style.width = "3px";
+  sliderDivider.style.height = "100%";
+  sliderDivider.style.transform = "translateX(-50%)";
+  sliderDivider.style.zIndex = "30";
+  sliderDivider.style.cursor = "ew-resize";
+  sliderDivider.style.background = "rgba(255,255,255,0.95)";
+  sliderDivider.style.boxShadow =
+    "0 0 0 1px rgba(0,0,0,0.20), 0 0 12px rgba(0,0,0,0.25)";
+
+  // Grab handle
+  sliderDivider.innerHTML = `
+    <span style="
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:30px;
+      height:30px;
+      border-radius:50%;
+      background:#f8f6ee;
+      border:2px solid #48704a;
+      box-shadow:0 2px 8px rgba(0,0,0,0.22);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#48704a;
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:-2px;
+    ">??</span>
+  `;
+
+  if (!sliderDivider.dataset.dualDragBound) {
+    sliderDivider.dataset.dualDragBound = "1";
+
+    let dragging = false;
+
+    const moveSplit = (clientX) => {
+      const rect = canvasContainer.getBoundingClientRect();
+
+      if (!rect.width) return;
+
+      let pct = ((clientX - rect.left) / rect.width) * 100;
+      pct = Math.max(5, Math.min(95, pct));
+
+      sliderDivider.style.left = pct + "%";
+
+      sliderWrapper.style.clipPath =
+        `polygon(${pct}% 0,100% 0,100% 100%,${pct}% 100%)`;
+    };
+
+    sliderDivider.addEventListener("pointerdown", (e) => {
+      dragging = true;
+
+      try {
+        sliderDivider.setPointerCapture(e.pointerId);
+      } catch (_) {}
+
+      moveSplit(e.clientX);
+      e.preventDefault();
+    });
+
+    sliderDivider.addEventListener("pointermove", (e) => {
+      if (dragging) {
+        moveSplit(e.clientX);
+      }
+    });
+
+    sliderDivider.addEventListener("pointerup", () => {
+      dragging = false;
+    });
+
+    sliderDivider.addEventListener("pointercancel", () => {
+      dragging = false;
+    });
+  }
+}
+
+function resetSplitPosition() {
+    if (!sliderWrapper || !sliderDivider) return;
+
+    sliderDivider.style.left = "50%";
+
+    // T2 is the clipped/right-hand image inside the split wrapper.
+    sliderWrapper.style.clipPath =
+      "polygon(50% 0, 100% 0, 100% 100%, 50% 100%)";
+  }
+
   function setCanvasLayer(mode) {
     // Never display a layer that has no real data.
     if (mode !== "single" && !canvasLayerAvailable(mode)) {
@@ -637,6 +921,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (imgT1) imgT1.style.display = "block";
       if (sliderWrapper) sliderWrapper.style.display = "block";
       if (sliderDivider) sliderDivider.style.display = "block";
+      resetSplitPosition();
     } else if (mode === "sar") {
       if (imgSar) imgSar.style.display = "block";
     } else if (mode === "fused") {
@@ -763,6 +1048,11 @@ document.addEventListener("DOMContentLoaded", () => {
           "Two acquisitions ? Change detection / SAR fusion";
 
         currentMode = "bi_temporal";
+
+        // Prepare comparison workspace; actual split becomes visible
+        // automatically once both images have been uploaded.
+        if (imgT1) imgT1.style.display = "none";
+        if (imgT2) imgT2.style.display = "none";
 
         dualUploadT1 = null;
         dualUploadT2 = null;
@@ -1004,7 +1294,10 @@ document.addEventListener("DOMContentLoaded", () => {
     appendChatMessage("user", query);
     queryInput.value = "";
     traceContainer.innerHTML = "";
+    analysisCompleted = false;
+    analysisGeneration += 1;
     showLoading("LangGraph Controller: Dispatching Inference Pipeline...");
+    setAnswerLoadingState(true, _initialLoaderModel());
     traceStatusBadge.textContent = "● Running";
     bboxContainer.innerHTML = "";
 
@@ -1047,31 +1340,63 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function _pollTaskCompletion(taskId, maxWaitSec = 120) {
+    // Each query owns one generation. A stale poller from an older
+    // query is never allowed to overwrite the current UI state.
+    const runGeneration = analysisGeneration;
     const start = Date.now();
+
     while ((Date.now() - start) / 1000 < maxWaitSec) {
       await new Promise(r => setTimeout(r, 2000));
+
+      // Ignore stale polling loops immediately.
+      if (runGeneration !== analysisGeneration) return;
+
       const res = await fetch(`${BASE_URL}/api/v1/query/${taskId}/status`);
       const data = await res.json();
+
+      // Ignore results belonging to an older analysis.
+      if (runGeneration !== analysisGeneration) return;
+
       if (data.status === "complete") {
         _handleQueryComplete(data.result);
         return;
       }
+
       if (data.status === "error") {
-        appendChatMessage("agent", `Agent error: ${data.error}`, null);
-        traceStatusBadge.textContent = "● Error";
+        // Never allow a late/stale error to overwrite a successful run.
+        if (analysisCompleted) return;
+
+        appendChatMessage(
+          "agent",
+          `Agent error: ${data.error}`,
+          null
+        );
+
+        traceStatusBadge.textContent = "? Error";
         hideLoading();
         return;
       }
     }
-    appendChatMessage("agent", "Analysis timed out. The model may still be loading.", null);
+
+    // Timeout also belongs only to this active generation.
+    if (runGeneration !== analysisGeneration || analysisCompleted) return;
+
+    appendChatMessage(
+      "agent",
+      "Analysis timed out. The model may still be loading.",
+      null
+    );
+
+    traceStatusBadge.textContent = "? Error";
     hideLoading();
   }
 
   function _handleQueryComplete(data) {
+    analysisCompleted = true;
     lastAnalysisResult = data;
     lastAnalysisMode = data.task_type;
     hideLoading();
-    traceStatusBadge.textContent = "● Idle";
+    traceStatusBadge.textContent = "? Complete";
 
     // Primary answer text
     const answerText = data.answer || data.fused_findings ||
@@ -1080,12 +1405,31 @@ document.addEventListener("DOMContentLoaded", () => {
     appendChatMessage("agent", answerText, data);
     if (aiAnswerText) aiAnswerText.textContent = answerText;
 
-    // Confidence
-    const confPct = Math.round((data.confidence || 0) * 100);
+    // Engineering confidence score.
+    // This is an uncalibrated system score, NOT a GeoChat probability.
+    const hasConfidence =
+      typeof data.confidence === "number" &&
+      Number.isFinite(data.confidence);
+
     if (confidenceIndicator) {
-      confidenceIndicator.textContent = `${confPct}% CONFIDENCE`;
-      confidenceIndicator.style.background = confPct > 85 ? "var(--green-bg)" : "var(--amber-bg)";
-      confidenceIndicator.style.color = confPct > 85 ? "var(--green-fg)" : "var(--amber-fg)";
+      if (hasConfidence) {
+        const confPct = Math.round(data.confidence * 100);
+        confidenceIndicator.textContent =
+          `${confPct}% ENGINEERING SCORE`;
+        confidenceIndicator.style.background =
+          confPct > 85 ? "var(--green-bg)" : "var(--amber-bg)";
+        confidenceIndicator.style.color =
+          confPct > 85 ? "var(--green-fg)" : "var(--amber-fg)";
+        confidenceIndicator.title =
+          "Uncalibrated engineering score; not a calibrated probability.";
+      } else {
+        confidenceIndicator.textContent =
+          "CONFIDENCE UNAVAILABLE";
+        confidenceIndicator.style.background = "var(--amber-bg)";
+        confidenceIndicator.style.color = "var(--amber-fg)";
+        confidenceIndicator.title =
+          "GeoChat-7B does not expose a calibrated answer confidence.";
+      }
     }
 
     // Update images from real analysis output
@@ -1187,11 +1531,53 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+
+  function _updateLoaderFromTrace(msg) {
+    if (!msg || msg.status !== "done") return;
+
+    const node = String(msg.node || "").toUpperCase();
+    const detail = String(msg.detail || "");
+
+    if (!node.includes("MODEL_ROUTER") &&
+        !node.includes("EXECUTOR")) {
+      return;
+    }
+
+    const d = detail.toLowerCase();
+
+    if (d.includes("cross_modal_sar_optical") ||
+        d.includes("sar") ||
+        d.includes("crossmodal")) {
+      _setAnswerLoaderModel("SAR-Optical Fusion");
+      return;
+    }
+
+    if (d.includes("region_grounding") ||
+        d.includes("visual_grounding") ||
+        d.includes("grounding")) {
+      _setAnswerLoaderModel("RSVG / MGVLF");
+      return;
+    }
+
+    if (d.includes("bi_temporal_change") ||
+        d.includes("change_detection") ||
+        d.includes("change detection")) {
+      _setAnswerLoaderModel("Change Detection");
+      return;
+    }
+
+    if (d.includes("geochat") ||
+        d.includes("rs_vlm") ||
+        d.includes("vqa")) {
+      _setAnswerLoaderModel("GeoChat-7B");
+    }
+  }
+
   function _appendLiveTraceStep(msg) {
     const icon = msg.status === "running" ? "⟳" : (msg.status === "error" ? "✗" : "✓");
     const colorClass = msg.status === "error" ? "c-red" : (msg.status === "running" ? "c-amber" : "c-green");
     const div = document.createElement("div");
-    div.className = "trace-step";
+    div.className = `trace-step trace-live-enter ${msg.status === "running" ? "trace-live-running" : ""}`;
     div.innerHTML = `
       <div class="trace-icon ${colorClass}">${icon}</div>
       <div class="trace-content">
@@ -1204,6 +1590,8 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     traceContainer.appendChild(div);
     traceContainer.scrollTop = traceContainer.scrollHeight;
+
+    _updateLoaderFromTrace(msg);
   }
 
   function appendChatMessage(role, text, data) {
@@ -1407,7 +1795,8 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       item.querySelector(".grounding-show").addEventListener("click", () => {
         switchView("workspace");
-        setCanvasLayer("split");
+        setCanvasLayer("split")
+  forceDualSplitView();;
         renderBoundingBoxes(regions);
       });
       groundingList.appendChild(item);
@@ -1591,14 +1980,134 @@ document.addEventListener("DOMContentLoaded", () => {
     window.URL.revokeObjectURL(url);
   }
 
-  // ---------- Loading ----------
+  // ---------- Loading / Live Inference ----------
+  function setAnswerLoadingState(active, modelName = "GeoChat-7B") {
+    if (!aiAnswerText) return;
+
+    const parent = aiAnswerText.parentElement;
+    if (!parent) return;
+
+    let loader = parent.querySelector(".satquery-answer-loader");
+
+    if (active) {
+      aiAnswerText.textContent = "";
+      aiAnswerText.style.display = "none";
+
+      if (!loader) {
+        loader = document.createElement("div");
+        loader.className = "satquery-answer-loader";
+
+        const model = document.createElement("div");
+        model.className = "satquery-answer-loader-model";
+        loader.appendChild(model);
+
+        parent.insertBefore(loader, aiAnswerText);
+      }
+
+      const modelEl = loader.querySelector(".satquery-answer-loader-model");
+      if (modelEl) {
+        modelEl.textContent = modelName || "GeoChat-7B";
+      }
+
+      loader.style.display = "flex";
+    } else {
+      if (loader) loader.style.display = "none";
+      aiAnswerText.style.display = "";
+    }
+  }
+
+  function _setAnswerLoaderModel(modelName) {
+    const loader = aiAnswerText?.parentElement?.querySelector(
+      ".satquery-answer-loader"
+    );
+
+    if (!loader) return;
+
+    const modelEl = loader.querySelector(".satquery-answer-loader-model");
+
+    if (modelEl && modelName) {
+      modelEl.textContent = modelName;
+    }
+  }
+
+  function _initialLoaderModel() {
+    const query = (queryInput?.value || "").toLowerCase();
+
+    if (query.includes("sar") ||
+        query.includes("radar") ||
+        query.includes("sentinel-1") ||
+        query.includes("backscatter") ||
+        query.includes("microwave")) {
+      return "SAR-Optical Fusion";
+    }
+
+    if (query.includes("locate") ||
+        query.includes("highlight") ||
+        query.includes("where is") ||
+        query.includes("bounding box") ||
+        query.includes("bbox") ||
+        query.includes("find the buildings")) {
+      return "RSVG / MGVLF";
+    }
+
+    if (dualUploadEnabled) {
+      return "Change Detection";
+    }
+
+    return "GeoChat-7B";
+  }
+
+
+  function setSceneAnalysisState(active) {
+    document.body.classList.toggle("satquery-analysis-running", active);
+
+    if (!canvasContainer) return;
+
+    let scanner = canvasContainer.querySelector(".scene-analysis-scanner");
+
+    if (active && !scanner) {
+      scanner = document.createElement("div");
+      scanner.className = "scene-analysis-scanner";
+      scanner.setAttribute("aria-hidden", "true");
+      canvasContainer.appendChild(scanner);
+    }
+
+    if (scanner) {
+      scanner.style.display = active ? "block" : "none";
+    }
+  }
+
   function showLoading(text) {
     loadingStatusText.textContent = text;
+
+    // During inference, show the real execution trace and
+    // scene scanner instead of covering the whole application.
+    const isInference = String(text || "").includes("LangGraph Controller");
+
+    if (isInference) {
+      loadingOverlay.classList.remove("visible");
+      setSceneAnalysisState(true);
+      setAnswerLoadingState(true);
+      return;
+    }
+
     loadingOverlay.classList.add("visible");
   }
+
   function hideLoading() {
     loadingOverlay.classList.remove("visible");
+    setSceneAnalysisState(false);
+    setAnswerLoadingState(false);
   }
 
   init();
+
+  if (dualUploadEnabled) {
+    forceDualSplitView();
+  }
+});
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadSatQueryDemoData();
 });

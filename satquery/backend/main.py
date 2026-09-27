@@ -385,8 +385,11 @@ async def submit_query(request: QueryRequest, background_tasks: BackgroundTasks)
     # Add to conversation history
     session.add_turn("user", request.query or "")
 
+    # Agentic routing:
+    # Do not force a task from the frontend. The agent selects the
+    # task from the natural-language query + actual uploaded images.
     background_tasks.add_task(
-        _run_agent_task, task_id, request.query or "", session, request.mode
+        _run_agent_task, task_id, request.query or "", session, None
     )
 
     return {

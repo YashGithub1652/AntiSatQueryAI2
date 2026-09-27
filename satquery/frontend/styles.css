@@ -3745,3 +3745,122 @@ img[src=""] {
    on that wrapper, because the current HTML has T1/T2 directly inside
    #dual-upload-panel.
    ============================================================================ */
+/* ---------- Live Inference Animation ---------- */
+.scene-analysis-scanner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  z-index: 40;
+  pointer-events: none;
+  display: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(72, 112, 74, 0.15) 15%,
+    rgba(72, 112, 74, 0.95) 50%,
+    rgba(72, 112, 74, 0.15) 85%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 8px rgba(72, 112, 74, 0.55),
+    0 0 22px rgba(72, 112, 74, 0.25);
+  animation: satquerySceneScan 2.4s ease-in-out infinite alternate;
+}
+@keyframes satquerySceneScan {
+  0% {
+    top: 2%;
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 98%;
+    opacity: 0.55;
+  }
+}
+.trace-live-enter {
+  animation: satqueryTraceIn 0.38s ease-out both;
+}
+.trace-live-running .trace-icon {
+  animation: satqueryTracePulse 1.1s ease-in-out infinite;
+}
+@keyframes satqueryTraceIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes satqueryTracePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+/* ----------------------------------------------- */
+
+
+/* SATQUERY PATCH 13 ? Answer analysis loader */
+
+.satquery-answer-loader {
+  min-height: 150px;
+  width: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 14px;
+  border-radius: 12px;
+  background: rgba(248, 246, 238, 0.72);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.satquery-answer-loader-model {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(72, 112, 74, 0.95);
+}
+
+.satquery-answer-loader-ring {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid rgba(72, 112, 74, 0.18);
+  border-top-color: rgba(72, 112, 74, 0.95);
+  border-right-color: rgba(72, 112, 74, 0.55);
+  animation: satqueryAnswerSpin 0.85s linear infinite;
+}
+
+.satquery-answer-loader-title {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  color: #48704a;
+}
+
+.satquery-answer-loader-sub {
+  font-size: 11px;
+  color: #817d72;
+  text-align: center;
+}
+
+@keyframes satqueryAnswerSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

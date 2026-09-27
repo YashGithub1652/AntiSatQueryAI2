@@ -24,9 +24,15 @@ class StreamManager:
     def __init__(self):
         # session_id → WebSocket connection
         self._connections: Dict[str, object] = {}
+        # FastAPI event loop used by worker-thread trace callbacks.
+        self._loop = None
 
     def register(self, session_id: str, websocket):
         self._connections[session_id] = websocket
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
         logger.info(f"WebSocket registered for session {session_id}")
 
     def unregister(self, session_id: str):
@@ -60,11 +66,16 @@ class StreamManager:
             }
             # Schedule the async send from sync context
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.ensure_future(manager.send(session_id, message))
+                loop = manager._loop
+                if loop is not None and loop.is_running():
+                    asyncio.run_coroutine_threadsafe(
+                        manager.send(session_id, message),
+                        loop,
+                    )
                 else:
-                    loop.run_until_complete(manager.send(session_id, message))
+                    logger.debug(
+                        "WebSocket callback: main event loop unavailable"
+                    )
             except Exception as e:
                 logger.debug(f"WebSocket callback scheduling: {e}")
 

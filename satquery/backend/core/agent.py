@@ -280,6 +280,87 @@ def node_check_coregistration(state: AgentState) -> AgentState:
     else:
         task_context = "generic"
 
+    # Visual-only bi-temporal exception.
+    #
+    # Node 3 intentionally runs before Node 4, so input_structure has
+    # not yet been populated by node_classify_task(). For an explicit
+    # two-image temporal/change query, allow same-sized PNG/JPEG pairs
+    # through as VISUAL_ONLY rather than incorrectly blocking them.
+    #
+    # This does NOT claim CRS registration or geographic-area accuracy.
+    query_lower = str(state.get("query", "")).lower()
+
+    temporal_query = any(k in query_lower for k in [
+        "change",
+        "changed",
+        "changes",
+        "difference",
+        "differences",
+        "compare",
+        "comparison",
+        "between",
+        "before",
+        "after",
+        "temporal",
+        "t1",
+        "t2",
+        "over time",
+        "growth",
+        "expansion",
+        "deforestation",
+        "flood",
+        "inundation",
+        "damage",
+    ])
+
+    if temporal_query and len(images) == 2:
+        arr1 = images[0].get("array")
+        arr2 = images[1].get("array")
+
+        same_shape = False
+
+        if arr1 is not None and arr2 is not None:
+            try:
+                same_shape = tuple(arr1.shape[:2]) == tuple(arr2.shape[:2])
+            except Exception:
+                same_shape = False
+
+        if same_shape:
+            result = {
+                "skipped": True,
+                "scientific_gate": "VISUAL_ONLY",
+                "registration_quality": 0.50,
+                "registration": {
+                    "performed": False,
+                    "mode": "visual_only",
+                    "reason": (
+                        "PNG/JPEG pair has no CRS/geotransform; "
+                        "same-sized image-space comparison enabled."
+                    ),
+                },
+                "warnings": [
+                    "PNG/JPEG pair has no CRS/geotransform.",
+                    "Visual-only image-space change comparison enabled.",
+                    "Geospatial registration and km? area measurement are unavailable.",
+                ],
+                "errors": [],
+                "recommendation": (
+                    "Visual-only bi-temporal comparison enabled for "
+                    "same-sized T1/T2 images."
+                ),
+            }
+
+            state["coregistration"] = result
+
+            _log_node_done(
+                state,
+                node_name,
+                result,
+                time.time() - t0,
+            )
+
+            return state
+
     # Phase 2B: unsupported dual-image structures must not enter
     # scientific co-registration workflows.
     if structure not in (
@@ -499,9 +580,21 @@ def node_classify_task(state: AgentState) -> AgentState:
             "was rejected and routing was normalized to SINGLE_VQA."
         )
 
-    # Single image default
-    if n_images == 1 and task_type in ("UNKNOWN", "CLARIFICATION_NEEDED"):
+    # Single-image fallback:
+    # Preserve every valid semantic task selected by the agent
+    # (VQA, captioning, or grounding). Only use VQA when the
+    # query genuinely has no actionable intent.
+    if n_images == 1 and task_type == "CLARIFICATION_NEEDED":
         task_type = "SINGLE_VQA"
+        parse["override_reason"] = (
+            "Single image with unresolved intent; using SINGLE_VQA fallback."
+        )
+
+    if n_images == 1 and task_type not in TASK_TYPES:
+        task_type = "SINGLE_VQA"
+        parse["override_reason"] = (
+            "Single image with unsupported intent; using SINGLE_VQA fallback."
+        )
 
     result = {
         "task_type": task_type,
@@ -973,8 +1066,14 @@ def node_aggregate_outputs(state: AgentState) -> AgentState:
     # Confidence / uncertainty aggregation
     # ---------------------------------------------------------
     
-    raw_model_confidence = float(
-        raw.get("confidence", 0.0) or 0.0
+    raw_confidence_value = raw.get("confidence")
+
+    # GeoChat does not expose a calibrated answer probability.
+    # None means "model confidence unavailable", not zero-confidence prediction.
+    raw_model_confidence = (
+        float(raw_confidence_value)
+        if raw_confidence_value is not None
+        else 0.0
     )
     
     registration_quality = float(
@@ -1170,15 +1269,44 @@ def node_aggregate_outputs(state: AgentState) -> AgentState:
     # ── Structured Findings for UI Stats & ReportLab PDF ────────
     findings = []
     if task_type == "BI_TEMPORAL_CHANGE":
-        findings.append({"category": "Changed Extent", "detail": f"{final.get('change_pct', 0)}% of total scene area"})
-        findings.append({"category": "Surface Area", "detail": f"{final.get('changed_area_km2', 0)} km² computed at 10m GSD"})
+        change_pct = final.get("change_pct", 0)
+        changed_area_km2 = final.get("changed_area_km2")
         n_reg = final.get("change_stats", {}).get("n_change_regions", 0)
-        findings.append({"category": "Change Clusters", "detail": f"{n_reg} contiguous spatial change parcels"})
+
+        findings.append({
+            "category": "Changed Extent",
+            "detail": f"{change_pct}% of image pixels"
+        })
+
+        if changed_area_km2 is not None:
+            findings.append({
+                "category": "Surface Area",
+                "detail": (
+                    f"{changed_area_km2} km? computed from "
+                    "image spatial resolution"
+                )
+            })
+            changed_area_display = f"{changed_area_km2} km?"
+        else:
+            findings.append({
+                "category": "Surface Area",
+                "detail": (
+                    "Unavailable ? PNG/JPEG input has no CRS, "
+                    "geotransform, or spatial-resolution metadata"
+                )
+            })
+            changed_area_display = "Unavailable"
+
+        findings.append({
+            "category": "Change Clusters",
+            "detail": f"{n_reg} contiguous spatial change parcels"
+        })
+
         final["change_analysis"] = {
             "summary": final["answer"],
             "change_metrics": {
-                "change_percentage": f"{final.get('change_pct', 0)}%",
-                "changed_area": f"{final.get('changed_area_km2', 0)} km²",
+                "change_percentage": f"{change_pct}%",
+                "changed_area": changed_area_display,
                 "regions": n_reg
             },
             "confidence": final.get("confidence", 0.90)
@@ -1285,12 +1413,31 @@ def node_generate_audit_log(state: AgentState) -> AgentState:
     Shows judges exactly what each model did and in what order.
     """
     node_name = "NODE_8_AUDIT"
+    t0 = time.time()
+
     _log_node_start(state, node_name, "Generating execution trace")
 
     final = state.get("final_result", {})
     final["trace_log"] = state["trace_log"]
     final["trace"] = state["trace_log"]
+
+    audit_summary = {
+        "status": "completed",
+        "trace_entries": len(state["trace_log"]),
+    }
+
+    _log_node_done(
+        state,
+        node_name,
+        audit_summary,
+        time.time() - t0,
+    )
+
+    # Refresh the final trace after adding the completed AUDIT entry.
+    final["trace_log"] = state["trace_log"]
+    final["trace"] = state["trace_log"]
     state["final_result"] = final
+
     return state
 
 

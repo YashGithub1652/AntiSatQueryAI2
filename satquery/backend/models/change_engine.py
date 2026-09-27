@@ -41,7 +41,7 @@ CHANGE_THRESHOLD = 0.5           # Sigmoid output threshold
 
 # Area calculation constants
 # (will be overridden by actual image resolution from metadata)
-DEFAULT_RESOLUTION_M = 10.0      # Sentinel-1/2 default
+# No default spatial resolution: PNG/JPEG must not receive fake GSD.
 M2_PER_KM2 = 1_000_000
 
 
@@ -97,7 +97,40 @@ class ChangeDetectionEngine:
         if TORCH_AVAILABLE:
             t1_tensor = self._prepare_tensor(t1_array)
             t2_tensor = self._prepare_tensor(t2_array)
+            import hashlib
+
+            t1_hash = hashlib.sha256(
+                t1_tensor.detach().cpu().numpy().tobytes()
+            ).hexdigest()[:16]
+
+            t2_hash = hashlib.sha256(
+                t2_tensor.detach().cpu().numpy().tobytes()
+            ).hexdigest()[:16]
+
+            print(
+                "[CHANGEFORMER INPUT] "
+                f"T1 hash={t1_hash} "
+                f"T2 hash={t2_hash} "
+                f"T1 shape={tuple(t1_tensor.shape)} "
+                f"T2 shape={tuple(t2_tensor.shape)} "
+                f"T1 mean={float(t1_tensor.mean()):.6f} "
+                f"T2 mean={float(t2_tensor.mean()):.6f}"
+            )
+
             change_logits, model_name = self._run_changeformer(t1_tensor, t2_tensor)
+
+            output_hash = hashlib.sha256(
+                change_logits.detach().cpu().numpy().tobytes()
+            ).hexdigest()[:16]
+
+            print(
+                "[CHANGEFORMER OUTPUT] "
+                f"hash={output_hash} "
+                f"shape={tuple(change_logits.shape)} "
+                f"min={float(change_logits.min()):.6f} "
+                f"max={float(change_logits.max()):.6f} "
+                f"mean={float(change_logits.mean()):.6f}"
+            )
             change_prob = torch.softmax(change_logits, dim=1)[:, 1, :, :].squeeze().cpu().numpy()
             change_map = torch.argmax(change_logits, dim=1).squeeze().cpu().numpy().astype(np.uint8)
         else:
@@ -117,11 +150,37 @@ class ChangeDetectionEngine:
                 change_prob = diff
             change_map = (change_prob > 0.15).astype(np.uint8)
 
-        # ── Step 3: Compute change statistics ────────────────
+        # ── Step 3: Compute change statistics ────────────────        # Step 3: Compute change statistics
         change_pct = float(change_map.mean() * 100)
-        resolution_m = (t1_meta or {}).get("resolution_m") or DEFAULT_RESOLUTION_M
-        changed_area_km2 = self._compute_area_km2(change_map, resolution_m)
-        change_stats = self._analyze_change_regions(change_map, resolution_m)
+
+        # Only real spatial-resolution metadata may be used for
+        # geographic area. PNG/JPEG visual-only inputs have no
+        # defensible pixel size, so area remains unavailable.
+        resolution_raw = (t1_meta or {}).get("resolution_m")
+
+        try:
+            resolution_m = (
+                float(resolution_raw)
+                if resolution_raw is not None
+                else None
+            )
+            if resolution_m is not None and resolution_m <= 0:
+                resolution_m = None
+        except (TypeError, ValueError):
+            resolution_m = None
+
+        changed_area_km2 = None
+
+        if resolution_m is not None:
+            changed_area_km2 = self._compute_area_km2(
+                change_map,
+                resolution_m,
+            )
+
+        change_stats = self._analyze_change_regions(
+            change_map,
+            resolution_m,
+        )
 
         # ── Step 4: Evaluation against reference mask ─────────
         evaluation = {}
@@ -152,7 +211,11 @@ class ChangeDetectionEngine:
             "change_map_b64": change_map_b64,
             "overlay_b64": overlay_b64,
             "change_pct": round(change_pct, 2),
-            "changed_area_km2": round(changed_area_km2, 2),
+            "changed_area_km2": (
+                round(changed_area_km2, 2)
+                if changed_area_km2 is not None
+                else None
+            ),
             "description": description,
             "t1_preview_b64": t1_b64,
             "t2_preview_b64": t2_b64,
@@ -200,25 +263,22 @@ class ChangeDetectionEngine:
         t2_pil: Image.Image,
         query: str,
         change_pct: float,
-        area_km2: float,
+        area_km2: Optional[float],
         change_stats: Dict,
         t1_meta: Optional[Dict],
         t2_meta: Optional[Dict],
     ) -> str:
-        """
-        Generate an evidence-grounded change description.
+        """Generate an evidence-grounded change description.
 
-        ChangeFormer performs the spatial change detection.
-        This method only verbalizes measured outputs and simple
-        image-level spectral differences. It does not claim a
-        specific land-cover cause or external institutional advice.
+        Geographic area is reported only when real spatial-resolution
+        metadata is available. Visual-only PNG/JPEG inputs report
+        image-space change only.
         """
 
         t1_arr = np.array(t1_pil, dtype=np.float32)
         t2_arr = np.array(t2_pil, dtype=np.float32)
 
         diff_arr = t2_arr - t1_arr
-
         delta_brightness = float(np.mean(diff_arr))
 
         exg_t1 = (
@@ -257,33 +317,60 @@ class ChangeDetectionEngine:
             )
         )
 
-        largest_km2 = float(
-            change_stats.get(
-                "largest_region_km2",
-                0.0,
-            )
+        largest_km2 = change_stats.get(
+            "largest_region_km2"
         )
 
-        largest_ha = round(
-            largest_km2 * 100.0,
-            2,
-        )
+        if area_km2 is None:
+            title = (
+                "Bi-temporal Remote Sensing Change Assessment "
+                "(Visual-only T1 ? T2)"
+            )
+
+            area_text = (
+                "Geographic area unavailable because the uploaded "
+                "PNG/JPEG images do not contain CRS, geotransform, "
+                "or spatial-resolution metadata."
+            )
+
+            region_text = (
+                f"{n_reg} connected change region(s) identified."
+            )
+
+        else:
+            title = (
+                "Bi-temporal Remote Sensing Change Assessment "
+                f"({str(sensor).replace('_', ' ').title()} "
+                f"T1 ? T2)"
+            )
+
+            area_text = (
+                f"Estimated changed geographic area: "
+                f"{area_km2:.2f} km? "
+                f"({area_km2 * 100.0:.2f} hectares)."
+            )
+
+            if largest_km2 is not None:
+                region_text = (
+                    f"{n_reg} connected change region(s) identified; "
+                    f"largest region spans approximately "
+                    f"{largest_km2:.2f} km?."
+                )
+            else:
+                region_text = (
+                    f"{n_reg} connected change region(s) identified."
+                )
 
         return (
-            f"Bi-temporal Remote Sensing Change Assessment "
-            f"({str(sensor).replace('_', ' ').title()} ? "
-            f"{d1} vs {d2}):\n"
-            f"? Change Detection: ChangeFormer detected "
-            f"{change_pct:.2f}% changed area "
-            f"({area_km2:.2f} km? / "
-            f"{area_km2 * 100.0:.2f} hectares).\n"
-            f"? Spatial Structure: {n_reg} connected change "
-            f"region(s) identified; largest region spans "
-            f"{largest_km2:.2f} km? ({largest_ha:.2f} ha).\n"
-            f"? Spectral Context: Mean RGB brightness delta = "
+            f"{title}:\n"
+            f"Change Detection: ChangeFormer detected "
+            f"{change_pct:.2f}% of image pixels as changed.\n"
+            f"{area_text}\n"
+            f"Spatial Structure: {region_text}\n"
+            f"Spectral Context: Mean RGB brightness delta = "
             f"{delta_brightness:.2f} DN-equivalent; "
             f"Excess Green delta = {delta_exg:.2f}.\n"
-            f"? Interpretation: These measurements describe "
+            f"Interpretation: These measurements describe "
             f"detected spatial and spectral differences between "
             f"the two observations. They do not by themselves "
             f"establish the specific land-cover cause of change."
@@ -330,59 +417,137 @@ class ChangeDetectionEngine:
     # ──────────────────────────────────────────────────────────
 
     def _analyze_change_regions(
-        self, change_map: np.ndarray, resolution_m: float
+        self,
+        change_map: np.ndarray,
+        resolution_m: Optional[float],
     ) -> Dict[str, Any]:
-        """Connected component analysis of change regions."""
+        """Connected components with truthful geographic-area handling."""
+
         try:
             from scipy import ndimage
 
             labeled, n_regions = ndimage.label(change_map)
             slices = ndimage.find_objects(labeled)
-            pixel_area_km2 = (resolution_m ** 2) / M2_PER_KM2
+
+            pixel_area_km2 = None
+
+            if resolution_m is not None and resolution_m > 0:
+                pixel_area_km2 = (
+                    resolution_m ** 2
+                ) / M2_PER_KM2
 
             regions_info = []
-            for i, s in enumerate(slices or []):
-                if s is None:
-                    continue
-                c_mask = (labeled[s] == (i + 1))
-                px_count = int(np.sum(c_mask))
-                if px_count >= 8:
-                    y_slice, x_slice = s
-                    regions_info.append({
-                        "region_idx": i + 1,
-                        "x1": int(x_slice.start), "y1": int(y_slice.start),
-                        "x2": int(x_slice.stop), "y2": int(y_slice.stop),
-                        "area_km2": round(px_count * pixel_area_km2, 4),
-                        "area_ha": round((px_count * (resolution_m**2)) / 10000.0, 2),
-                        "pixels": px_count,
-                    })
 
-            regions_info.sort(key=lambda r: r["pixels"], reverse=True)
+            for i, region_slice in enumerate(slices or []):
+                if region_slice is None:
+                    continue
+
+                c_mask = (
+                    labeled[region_slice] == (i + 1)
+                )
+
+                px_count = int(np.sum(c_mask))
+
+                if px_count < 8:
+                    continue
+
+                y_slice, x_slice = region_slice
+
+                region = {
+                    "region_idx": i + 1,
+                    "x1": int(x_slice.start),
+                    "y1": int(y_slice.start),
+                    "x2": int(x_slice.stop),
+                    "y2": int(y_slice.stop),
+                    "pixels": px_count,
+                    "area_km2": None,
+                    "area_ha": None,
+                }
+
+                if pixel_area_km2 is not None:
+                    region["area_km2"] = round(
+                        px_count * pixel_area_km2,
+                        4,
+                    )
+
+                    region["area_ha"] = round(
+                        (px_count * resolution_m ** 2)
+                        / 10000.0,
+                        2,
+                    )
+
+                regions_info.append(region)
+
+            regions_info.sort(
+                key=lambda r: r["pixels"],
+                reverse=True,
+            )
+
+            if pixel_area_km2 is not None:
+                top_3 = [
+                    r["area_km2"]
+                    for r in regions_info[:3]
+                ]
+
+                total_area = round(
+                    sum(
+                        r["area_km2"]
+                        for r in regions_info
+                        if r["area_km2"] is not None
+                    ),
+                    3,
+                )
+
+                largest_area = (
+                    regions_info[0]["area_km2"]
+                    if regions_info
+                    else 0
+                )
+            else:
+                top_3 = []
+                total_area = None
+                largest_area = None
 
             return {
                 "n_change_regions": n_regions,
-                "largest_region_km2": regions_info[0]["area_km2"] if regions_info else 0,
-                "top_3_regions_km2": [r["area_km2"] for r in regions_info[:3]],
-                "total_changed_km2": round(sum(r["area_km2"] for r in regions_info), 3),
+                "largest_region_km2": largest_area,
+                "top_3_regions_km2": top_3,
+                "total_changed_km2": total_area,
                 "change_regions": regions_info[:8],
+                "area_available": pixel_area_km2 is not None,
             }
+
         except Exception as e:
-            logger.warning(f"Change region analysis error: {e}")
+            logger.warning(
+                f"Change region analysis error: {e}"
+            )
+
             return {
                 "n_change_regions": 1,
-                "largest_region_km2": 0,
+                "largest_region_km2": None,
                 "top_3_regions_km2": [],
-                "total_changed_km2": 0,
+                "total_changed_km2": None,
                 "change_regions": [],
+                "area_available": False,
             }
 
-
     def _compute_area_km2(
-        self, change_map: np.ndarray, resolution_m: float
-    ) -> float:
+        self,
+        change_map: np.ndarray,
+        resolution_m: Optional[float],
+    ) -> Optional[float]:
+        if resolution_m is None or resolution_m <= 0:
+            return None
+
         n_changed = change_map.sum()
-        pixel_area_km2 = (resolution_m ** 2) / M2_PER_KM2
-        return float(n_changed * pixel_area_km2)
+
+        pixel_area_km2 = (
+            resolution_m ** 2
+        ) / M2_PER_KM2
+
+        return float(
+            n_changed * pixel_area_km2
+        )
 
     def _colorize_change_map(
         self, change_prob: np.ndarray, change_binary: np.ndarray

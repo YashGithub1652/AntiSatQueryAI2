@@ -191,7 +191,7 @@ class VQAEngine:
                     scientific = True
                     fallback_used = False
                     primary_model_status = "MODEL_SUCCESS"
-                    confidence = 0.95
+                    confidence = None
 
                 else:
 
@@ -340,34 +340,92 @@ class VQAEngine:
             # Query embedding
             query_tokens = tokenizer([query]).to(self._device)
 
-            # Land cover class embeddings
+            # Land-cover class embeddings
             class_texts = [
                 RS_CLASS_TEMPLATES[0].format(label=cls)
                 for cls in RS_LAND_COVER_CLASSES
             ]
             class_tokens = tokenizer(class_texts).to(self._device)
 
+            # ---------------------------------------------------------
+            # DYNAMIC SPATIAL LAND-COVER ESTIMATION
+            #
+            # The previous implementation classified the entire image
+            # once and treated the softmax scores as image coverage.
+            # That was not geographic coverage.
+            #
+            # We now classify spatial tiles independently and calculate
+            # the percentage of tiles assigned to each class.
+            # ---------------------------------------------------------
+            GRID_ROWS = 4
+            GRID_COLS = 4
+
+            width, height = pil_img.size
+            patch_images = []
+
+            for row in range(GRID_ROWS):
+                for col in range(GRID_COLS):
+                    left = int(col * width / GRID_COLS)
+                    upper = int(row * height / GRID_ROWS)
+                    right = int((col + 1) * width / GRID_COLS)
+                    lower = int((row + 1) * height / GRID_ROWS)
+
+                    right = max(right, left + 1)
+                    lower = max(lower, upper + 1)
+
+                    patch_images.append(
+                        pil_img.crop((left, upper, right, lower))
+                    )
+
+            patch_batch = torch.stack(
+                [preprocess(patch) for patch in patch_images]
+            ).to(self._device)
+
             with torch.no_grad():
+                # Full-image query confidence.
                 img_features = clip_model.encode_image(img_tensor)
                 query_features = clip_model.encode_text(query_tokens)
                 class_features = clip_model.encode_text(class_tokens)
 
-                # Normalize
-                img_features = img_features / img_features.norm(dim=-1, keepdim=True)
-                query_features = query_features / query_features.norm(dim=-1, keepdim=True)
-                class_features = class_features / class_features.norm(dim=-1, keepdim=True)
+                img_features = img_features / img_features.norm(
+                    dim=-1, keepdim=True
+                )
+                query_features = query_features / query_features.norm(
+                    dim=-1, keepdim=True
+                )
+                class_features = class_features / class_features.norm(
+                    dim=-1, keepdim=True
+                )
 
-                # Image-query similarity = confidence
                 query_sim = (img_features @ query_features.T).item()
-                confidence = max(0.0, min(1.0, (query_sim + 1.0) / 2.0))  # [-1,1] â†’ [0,1]
+                confidence = max(
+                    0.0,
+                    min(1.0, (query_sim + 1.0) / 2.0)
+                )
 
-                # Image-class similarities â†’ land cover probabilities
-                class_sims = (img_features @ class_features.T).softmax(dim=-1)[0]
+                # Classify every spatial tile.
+                patch_features = clip_model.encode_image(patch_batch)
+                patch_features = patch_features / patch_features.norm(
+                    dim=-1, keepdim=True
+                )
 
+                patch_scores = patch_features @ class_features.T
+                patch_classes = patch_scores.argmax(dim=-1)
+
+                class_counts = torch.bincount(
+                    patch_classes,
+                    minlength=len(RS_LAND_COVER_CLASSES)
+                ).float()
+
+                class_probs = class_counts / float(len(patch_images))
+
+            # Only return classes actually detected in the image.
             land_cover_probs = {
                 cls: round(float(prob), 3)
-                for cls, prob in zip(RS_LAND_COVER_CLASSES, class_sims)
+                for cls, prob in zip(RS_LAND_COVER_CLASSES, class_probs)
+                if float(prob) > 0.0
             }
+
             return round(confidence, 3), land_cover_probs
         except Exception as e:
             logger.warning(f"CLIP confidence scoring error: {e}")
